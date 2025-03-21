@@ -4,7 +4,7 @@ An optimisation of the official [Threadfin](https://github.com/Threadfin/Threadf
 ## Features
 
 - Adds optimisations to ffmpeg stream selection and handling
-- Adds support for running official ffmpeg static binaries (eg. less buggy versions)
+- Adds support for running custom ffmpeg static binaries (eg. less buggy versions)
 - Adds better docker process handling with 'supervisord'
 
 ## Optimisation Script
