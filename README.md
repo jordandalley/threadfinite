@@ -12,7 +12,7 @@ Uses the official latest docker image, but applies some optimisations including 
 1. Download this repository: ```git clone https://github.com/jordandalley/threadfinite.git```
 2. Download an ffmpeg binary of your choice from [https://www.johnvansickle.com/ffmpeg/old-releases/](https://www.johnvansickle.com/ffmpeg/old-releases/)
 3. Extract the ffmpeg binary into the 'build' directory, eg for ffmpeg 4.4.1:
-```
+```bash
 wget "https://www.johnvansickle.com/ffmpeg/old-releases/ffmpeg-4.4.1-amd64-static.tar.xz"
 tar xvf ffmpeg-4.4.1-amd64-static.tar.xz -C build/ --strip-components=1 --wildcards '*/ffmpeg'
 ```
