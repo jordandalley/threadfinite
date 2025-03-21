@@ -7,7 +7,7 @@ An optimisation of the official [Threadfin](https://github.com/Threadfin/Threadf
 - Adds support for running custom ffmpeg static binaries (eg. less buggy versions)
 - Adds better docker process handling with 'supervisord'
 
-## Optimisation Script
+## Optimisation Wrapper for FFmpeg
 
 When using ffmpeg in proxy mode in threadfin, ffmpeg ignores individual stream quality information in the m3u8 manifest and probes all streams to determine which is the highest resolution and quality. This is time consuming and not optimal when the m3u8 manifest contains all the relevant information necessary to determine the best stream.
 
