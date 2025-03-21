@@ -31,7 +31,7 @@ If you wish to bypass the optimisation script, and pass the streams directly to 
 
 1. Download this repository: ```git clone https://github.com/jordandalley/threadfinite.git```
 3. Download an ffmpeg binary of your choice from [https://www.johnvansickle.com/ffmpeg/old-releases/](https://www.johnvansickle.com/ffmpeg/old-releases/)
-4. Extract the ffmpeg binary into the 'build' directory, eg for ffmpeg 4.4.1:
+4. Extract the ffmpeg binary into the 'build' directory (eg. for FFmpeg 4.4.1):
 ```bash
 wget "https://www.johnvansickle.com/ffmpeg/old-releases/ffmpeg-4.4.1-amd64-static.tar.xz"
 tar -xvf ffmpeg-4.4.1-amd64-static.tar.xz -C build/ --strip-components=1 --wildcards '*/ffmpeg'
