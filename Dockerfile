@@ -8,14 +8,14 @@ RUN mkdir -p /var/run/nscd
 
 # copy supervisord configuration file
 COPY build/supervisord.conf /etc/supervisor/supervisord.conf
-# copy the ffmpeg 4.4.1 binary to /usr/bin inside container
-COPY build/ffmpeg-4.4.1 /usr/bin/ffmpeg-4.4.1
-# copy the wrapper script in place of ffmpeg
+# copy the wrapper script to /usr/bin in place of the original ffmpeg
 COPY build/ffmpeg_wrapper /usr/bin/ffmpeg
-# set the ffmpeg-4.4.1 binary as executable
-RUN chmod +x /usr/bin/ffmpeg-4.4.1
+# copy the ffmpeg binary to /usr/bin/ffmpeg-binary inside container
+COPY build/ffmpeg /usr/bin/ffmpeg-binary
 # set the ffmpeg wrapper script as executable
 RUN chmod +x /usr/bin/ffmpeg
+# set the ffmpeg-binary file as executable
+RUN chmod +x /usr/bin/ffmpeg-binary
 
 # start supervisord
 ENTRYPOINT ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
