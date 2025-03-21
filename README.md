@@ -20,4 +20,5 @@ tar -xvf ffmpeg-4.4.1-amd64-static.tar.xz -C build/ --strip-components=1 --wildc
 5. Build and run the container:
 ```bash
 docker compose build
-docker compose up -d```
+docker compose up -d
+```
