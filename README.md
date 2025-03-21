@@ -1,5 +1,5 @@
 # Threadfinite
-An optimisation for the official [Threadfin](https://github.com/Threadfin/Threadfin) build image.
+An optimisation of the official [Threadfin](https://github.com/Threadfin/Threadfin) docker image.
 
 ## Features
 
