@@ -10,7 +10,7 @@ cache_dir="/home/threadfin/conf/cache"
 cache_max=30
 # ffmpeg and yt-dlp paths
 yt_dlp_path="/usr/bin/yt-dlp"
-ffmpeg_path="/usr/bin/ffmpeg-4.4.1"
+ffmpeg_path="/usr/bin/ffmpeg-binary"
 
 construct_command() {
   yt_dlp_proxy=""
