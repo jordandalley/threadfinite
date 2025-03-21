@@ -28,7 +28,7 @@ construct_command() {
   constructInputs=$(echo "$getUrls" | awk -v ua="$user_agent" -v proxy="$ffmpeg_proxy" '{printf "%s -user_agent \"%s\" -i \"%s\" ", proxy, ua, $0}')
 
   # construct the ffmpeg command for output to stdout
-  echo "$ffmpeg_path -y -hide_banner -loglevel quiet -re -analyzeduration 3000000 -probesize 10M -fflags +discardcorrupt+genpts $constructInputs -multiple_requests 1 -c copy -f mpegts pipe:1"
+  echo "$ffmpeg_path -y -hide_banner -loglevel quiet -re -analyzeduration 3000000 -probesize 10M -fflags +discardcorrupt+genpts $constructInputs -async 1 -c copy -f mpegts pipe:1"
 }
 
 run_command() {
