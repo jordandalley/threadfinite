@@ -1,11 +1,31 @@
 # Threadfinite
-Uses the official latest docker image, but applies some optimisations including the following:
+An optimisation for the official [Threadfin](https://github.com/Threadfin/Threadfin) build image.
 
-- Adds 'supervisord' for multi process management
-- Adds 'nscd' for being able to run ffmpeg static binary builds
-- Adds 'yt-dlp' for finding optimal stream URL's
-- Removes latest buggy ffmpeg builds using apt-get remove, and inserts an ffmpeg binary of your choice into image at /usr/bin/ffmpeg-binary
-- Adds a wrapper script in place of /usr/bin/ffmpeg that adds optimisations for stream fetching and caching capability (See: [threadfin-get-best-stream](https://github.com/jordandalley/threadfin-get-best-stream))
+## Features
+
+- Adds an optimisation script in place the ffmpeg command
+- Adds better process handling with 'supervisord'
+- Adds support for running official ffmpeg static binaries (eg. less buggy versions)
+
+## Optimisation Script
+
+When using ffmpeg in proxy mode in threadfin, ffmpeg ignores individual stream quality information in the m3u8 manifest and probes all streams to determine which is the highest resolution and quality. This is time consuming and not optimal when the m3u8 manifest contains all the relevant information necessary to determine the best stream.
+
+This script passes tne requested stream url to 'yt-dlp' first, which parses the m3u8 manifest for the highest quality stream (or streams if audio and video separate), builds a special ffmpeg command which feeds the highest quality stream directly to it, and caches the command (when appropriate) for subsequent streams.
+
+Cache files are stored in the Threadfin config/cache directory. The cache can be purged by deleting the 'ffcmd-*' files.
+
+If you wish to bypass the optimisation script, and pass the streams directly to ffmpeg like normal, you can simply login to Threadfin and change the ffmpeg binary path from '/usr/bin/ffmpeg' to '/usr/bin/ffmpeg-binary'.
+
+## What does the Dockerfile do?
+
+- Adds & removes apt packages in the official Threadfin docker image:
+  - supervisord: added for better process handling, and running nscd alongside the threadfin process
+  - nscd: needed for dns resolution of official ffmpeg static builds
+  - yt-dlp: used by the ffmpeg wrapper script for parsing m3u manifests
+  - ffmpeg: remove this apt package so we can use our own ffmpeg binaries
+- Copies the ffmpeg wrapper script in build/ffmpeg_wrapper to /usr/bin/ffmpeg
+- Copies the supplied ffmped static binary from build/ffmpeg to /usr/bin/ffmpeg-binary
 
 ## Installation
 
