@@ -9,7 +9,7 @@ Uses the official latest docker image, but applies some optimisations including 
 
 ## Installation
 
-1. Download this repository: ```git clone ```
+1. Download this repository: ```git clone https://github.com/jordandalley/threadfinite.git```
 2. Edit the docker-compose.yaml file, to point to your chosen config and tmp paths
 3. Build the container: ```docker compose build```
 4. Run the container: ```docker compose up -d```
