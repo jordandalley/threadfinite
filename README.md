@@ -3,7 +3,7 @@ An optimisation for the official [Threadfin](https://github.com/Threadfin/Thread
 
 ## Features
 
-- Adds an optimisation script in place the ffmpeg command
+- Adds an optimisation script in place of the ffmpeg command
 - Adds better process handling with 'supervisord'
 - Adds support for running official ffmpeg static binaries (eg. less buggy versions)
 
