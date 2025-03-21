@@ -3,9 +3,9 @@ An optimisation for the official [Threadfin](https://github.com/Threadfin/Thread
 
 ## Features
 
-- Adds an optimisation script in place of the ffmpeg command
-- Adds better process handling with 'supervisord'
+- Adds optimisations to ffmpeg stream selection and handling
 - Adds support for running official ffmpeg static binaries (eg. less buggy versions)
+- Adds better docker process handling with 'supervisord'
 
 ## Optimisation Script
 
