@@ -9,7 +9,7 @@ RUN mkdir -p /var/run/nscd
 # copy supervisord configuration file
 COPY build/supervisord.conf /etc/supervisor/supervisord.conf
 # copy the wrapper script to /usr/bin in place of the original ffmpeg
-COPY build/ffmpeg_wrapper /usr/bin/ffmpeg
+COPY build/ffmpeg-wrapper /usr/bin/ffmpeg
 # copy the ffmpeg binary to /usr/bin/ffmpeg-binary inside container
 COPY build/ffmpeg /usr/bin/ffmpeg-binary
 # set the ffmpeg wrapper script as executable
