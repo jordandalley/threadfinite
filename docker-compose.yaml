@@ -1,0 +1,14 @@
+services:
+  threadfin:
+    build: .
+    container_name: threadfin
+    ports:
+      - 34400:34400
+    environment:
+      #- PUID=1000
+      #- PGID=1000
+      - TZ=Pacific/Auckland
+    volumes:
+      - /docker/threadfin/config:/home/threadfin/conf
+      - /tmp/threadfin:/tmp/threadfin
+    restart: unless-stopped
