@@ -22,13 +22,25 @@ construct_command() {
   fi
 
   # get highest quality stream using yt-dlp
-  getUrls=$(eval "$yt_dlp_path $yt_dlp_proxy --user-agent \"$user_agent\" -S br -f \"bv+ba/b\" -gS proto:m3u8 \"$input\"")
+  getUrls=$(eval "$yt_dlp_path $yt_dlp_proxy --user-agent \"$user_agent\" -S br -f \"bv+ba/b\" -g \"$input\"")
+
+  # check for google dai, and if exists in url set scte35 flag to true
+  if [[ "$getUrls" == *"dai.google.com"* ]]; then
+    scte35="true"
+  fi
 
   # split each line into inputs for ffmpeg which include proxy (if applicable) and user agent strings
   constructInputs=$(echo "$getUrls" | awk -v ua="$user_agent" -v proxy="$ffmpeg_proxy" '{printf "%s -user_agent \"%s\" -i \"%s\" ", proxy, ua, $0}')
 
-  # construct the ffmpeg command for output to stdout
-  echo "$ffmpeg_path -y -hide_banner -loglevel quiet -re -analyzeduration 3000000 -probesize 10M -fflags +discardcorrupt+genpts $constructInputs -async 1 -c copy -f mpegts pipe:1"
+  if [[ "$scte35" == "true" ]]; then
+    # is a scte35 or dai/ssai stream
+    # construct ffmpeg command for these types of treams
+    echo "$ffmpeg_path -y -hide_banner -loglevel quiet -analyzeduration 3000000 -probesize 10M -fflags +igndts -http_persistent 0 $constructInputs -c copy -f mpegts pipe:1"
+  else
+    # all other streams
+    # construct the ffmpeg command for output to stdout
+    echo "$ffmpeg_path -y -hide_banner -loglevel quiet -re -analyzeduration 3000000 -probesize 10M -fflags +discardcorrupt+genpts $constructInputs -async 1 -c copy -f mpegts pipe:1"
+  fi
 }
 
 run_command() {
@@ -82,19 +94,15 @@ check_cache() {
       if [[ $ffmpeg_command =~ exp=([0-9]{10}) ]]; then
         # if there is a expiry string in the command, then extract it and check if it is expired
         if [[ ${BASH_REMATCH[1]} -lt $(date +%s) ]]; then
-          # timestamp is expired, generate a new command and update cache file (this updated modified time for further cache checking)
+          # timestamp is expired, generate a new command and update cache file
           ffmpeg_command=$(construct_command)
           echo "$ffmpeg_command" > "$cache_file"
         fi
       fi
     else
-      # no cache file exists, create a cache file under certain conditions
+      # no cache file exists, create a cache file
       ffmpeg_command=$(construct_command)
-      # check if "dai.google.com" exists in the command. these urls cannot be cached
-      if [[ "$ffmpeg_command" != *"dai.google.com"* ]]; then
-        # google dai url not detected, cache the command
-        echo "$ffmpeg_command" > "$cache_file"
-      fi
+      echo "$ffmpeg_command" > "$cache_file"
     fi
   else
     # caching is not enabled, just construct the command
