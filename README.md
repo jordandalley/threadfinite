@@ -24,7 +24,7 @@ If you wish to bypass the optimisation script, and pass the streams directly to 
   - nscd: needed for dns resolution of official ffmpeg static builds
   - yt-dlp: used by the ffmpeg wrapper script for parsing m3u manifests
   - ffmpeg: remove this apt package so we can use our own ffmpeg binaries
-- Copies the ffmpeg wrapper script in build/ffmpeg_wrapper to /usr/bin/ffmpeg
+- Copies the ffmpeg wrapper script in build/ffmpeg-wrapper to /usr/bin/ffmpeg
 - Copies the supplied ffmped static binary from build/ffmpeg to /usr/bin/ffmpeg-binary
 
 ## Installation
