@@ -13,9 +13,11 @@ When using ffmpeg in proxy mode in threadfin, ffmpeg ignores individual stream q
 
 This script passes tne requested stream url to 'yt-dlp' first, which parses the m3u8 manifest for the highest quality stream (or streams if audio and video separate), builds a special ffmpeg command which feeds the highest quality stream directly to it, and caches the command (when appropriate) for subsequent streams.
 
-Cache files are stored in the Threadfin config/cache directory. The cache can be purged by deleting the 'ffcmd-*' files.
+Cache files are stored in the Threadfin config/ffmpeg-wrapper/cache directory. The cache can be purged by deleting the '*.cfl' files in this directory
 
 If you wish to bypass the optimisation script, and pass the streams directly to ffmpeg like normal, you can simply login to Threadfin and change the ffmpeg binary path from '/usr/bin/ffmpeg' to '/usr/bin/ffmpeg-binary'.
+
+Logs for the wrapper script are stored in config/ffmpeg-wrapper/log and retained for 2 days by default.
 
 ## What does the Dockerfile do?
 
