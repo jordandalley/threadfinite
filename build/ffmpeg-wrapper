@@ -4,13 +4,110 @@
 
 # Enable caching for faster stream starts
 cache=true
-# specify directory to store cache items (allow overriding)
-cache_dir="/home/threadfin/conf/cache"
+# specify directory to store cache items
+cache_dir="/home/threadfin/conf/ffmpeg-wrapper/cache"
 # specify a maximum expiry for the cache item (in days)
 cache_max=30
-# ffmpeg and yt-dlp paths
+# logging enabled
+logging=true
+# log retention (in days)
+log_retention=2
+# specify directory to store logs
+log_dir="/home/threadfin/conf/ffmpeg-wrapper/log"
+# ffmpeg log level, eg quiet, info, verbose, debug (Default: info)
+ffmpeg_loglevel="info"
+# yt-dlp binary path
 yt_dlp_path="/usr/bin/yt-dlp"
+# ffmpeg binary path
 ffmpeg_path="/usr/bin/ffmpeg-binary"
+
+start_stream() {
+  # initialise variables
+  cache_revalidate="false"
+  ffmpeg_logging=""
+  cmd_logging=""
+  # create log directory if it doesn't exist (ensure this runs silently)
+  mkdir -p "$log_dir" >> /dev/null 2>&1
+  # create an md5 encoded string with the master input url
+  # this is used for cache and log file generation (ensure this runs silently)
+  input_md5=$(echo -n "$input" | md5sum | cut -d ' ' -f1) >> /dev/null 2>&1
+  if [[ "$logging" == "true" ]]; then
+    timestamp=$(date +"%Y-%m-%d_%H-%M-%S")
+    log_file="${log_dir}/${input_md5}_${timestamp}.log"
+    log_stderr="2>> \"$log_file\""
+    log_all=">> \"$log_file\" 2>&1"
+  else
+    log_stderr="2>> /dev/null"
+    log_all=">> /dev/null 2>&1"
+  fi
+  # start logging
+  # start or restart stream log files by piping a new line
+  log_message "Master URL: $input"
+  log_message "User Agent: $user_agent"
+  if [[ -n "$http_proxy" ]]; then
+    log_message "Proxy Server: $http_proxy"
+  fi
+  log_message "Caching Enabled: $cache"
+  log_message "Cache Max: $cache_max days"
+  log_message "Log Retention: $log_retention days"
+  log_message "FFmpeg Log Level: $ffmpeg_loglevel"
+  # expire cache elements older than specified cache_max time in days
+  log_message "Cleaning logs older than $log_retention days"
+  find "$log_dir" -name "*.log" -mtime +"$log_retention" -exec rm -f {} +
+  # if caching enabled, check cache
+  if [[ "$cache" == "true" ]]; then
+    # caching enabled, get command through check_cache function
+    ffmpeg_command=$(check_cache)
+  else
+    # caching disabled, get command directly from contruct_command function
+    ffmpeg_command=$(construct_command)
+  fi
+  run_command
+}
+
+check_cache() {
+  # check if cache dir exists, and if not, create it
+  mkdir -p "${cache_dir}" "$log_all"
+
+  # create full path for file in cache
+  cache_file="$cache_dir/$input_md5.cfl"
+
+  # check if revalidation is required
+  if [[ "$cache_revalidate" == "true" ]]; then
+    log_message "Cache file revalidation requested, purging $cache_file"
+    rm -f "$cache_file"
+  else
+    # expire cache elements older than specified cache_max time in days
+    log_message "Expiring any cache elements older than $cache_max days"
+    find "$cache_dir" -name "*.cfl" -mtime +"$cache_max" -exec rm -f {} +
+  fi
+
+  # check if cache file still exists after expiring old cache objects
+  if [ -f "$cache_file" ]; then
+    log_message "Cache file $cache_file exists, checking..."
+    # pull command from the cache
+    output=$(< "$cache_file")
+    # check the ffmpeg command for only the first instance of 'exp=[0-9]{10}' which is an expiry timestamp. These are common in akamai streams.
+    if [[ $output =~ exp=([0-9]{10}) ]]; then
+      log_message "Cache URL contains an expiry timestamp"
+      if [[ ${BASH_REMATCH[1]} -lt $(date +%s) ]]; then
+        log_message "Timestamp is expired, generate a new command"
+        output=$(construct_command)
+        log_message "Storing new command in cache file"
+        echo "$output" > "$cache_file"
+      else
+        log_message "Timestamp still current, continuing on without changes"
+      fi
+    fi
+    log_message "Cache check complete"
+  else
+    log_message "Cache file $cache_file doesn't exist, constructing command..."
+    output=$(construct_command)
+    log_message "Saving new command to cache file: $cache_file"
+    echo "$output" > "$cache_file"
+  fi
+  echo "$output"
+}
 
 construct_command() {
   yt_dlp_proxy=""
@@ -22,93 +119,79 @@ construct_command() {
   fi
 
   # get highest quality stream using yt-dlp
-  getUrls=$(eval "$yt_dlp_path $yt_dlp_proxy --user-agent \"$user_agent\" -S br -f \"bv+ba/b\" -g \"$input\"")
+  log_message "Finding highest quality stream..."
+  getUrls=$(eval "$yt_dlp_path $yt_dlp_proxy --user-agent \"$user_agent\" -S br -f \"bv+ba/b\" -g \"$input\"" "$log_stderr")
+  exit_code=$?
+  if [[ "$exit_code" == 1 ]]; then
+    log_message "Fatal error retrieving streams using yt-dlp. Exiting!"
+    exit 1
+  fi
 
-  # check for google dai, and if exists in url set scte35 flag to true
+  # check for patterns in the url that can give hints as to which ffmpeg profile to use (default is profile 1)
+  ffmpeg_profile=1
   if [[ "$getUrls" == *"dai.google.com"* ]]; then
-    scte35="true"
+    log_message "dai.google.com detected in url, this stream may not work well..."
+    ffmpeg_profile=1
   fi
 
-  # split each line into inputs for ffmpeg which include proxy (if applicable) and user agent strings
-  constructInputs=$(echo "$getUrls" | awk -v ua="$user_agent" -v proxy="$ffmpeg_proxy" '{printf "%s -user_agent \"%s\" -i \"%s\" ", proxy, ua, $0}')
+  # for each line of getUrls, generate input side of ffmpeg command
+  log_message "Constructing input side of ffmpeg command..."
+  ff_inputs=""
+  while IFS= read -r url; do
+    ff_inputs+=" $ffmpeg_proxy -user_agent \"$user_agent\" -thread_queue_size 1000 -i \"$url\""
+  done <<< "$getUrls"
 
-  if [[ "$scte35" == "true" ]]; then
-    # is a scte35 or dai/ssai stream
-    # construct ffmpeg command for these types of treams
-    echo "$ffmpeg_path -y -hide_banner -loglevel quiet -analyzeduration 3000000 -probesize 10M -fflags +igndts -http_persistent 0 $constructInputs -c copy -f mpegts pipe:1"
-  else
-    # all other streams
-    # construct the ffmpeg command for output to stdout
-    echo "$ffmpeg_path -y -hide_banner -loglevel quiet -re -analyzeduration 3000000 -probesize 10M -fflags +discardcorrupt+genpts $constructInputs -async 1 -c copy -f mpegts pipe:1"
+  # below are the various command profiles that are different depending on the livestream
+  # for now we're just running with one command profile, but this may expand later into handling for DAI/SSAI streams etc
+  log_message "Generating command for profile $ffmpeg_profile"
+  if [[ "$ffmpeg_profile" == "1" ]]; then
+    # ffmpeg profile 1 (default): good for most streams
+    output="$ffmpeg_path -y -hide_banner -loglevel $ffmpeg_loglevel -analyzeduration 3000000 -probesize 10M -fflags +discardcorrupt+genpts$ff_inputs -c copy -f mpegts pipe:1"
   fi
+  log_message "FFmpeg command generated as: $output"
+  echo "$output"
 }
 
 run_command() {
   # Run the ffmpeg command
-  eval "$ffmpeg_command"
+  log_message "Running FFmpeg..."
+  eval "$ffmpeg_command" "$log_stderr"
+
   # Capture the exit code of the ffmpeg command
   exit_code=$?
 
   # If the exit code is 1 (indicating failure)
-  if [[ $exit_code -eq 1 ]]; then
+  if [[ $exit_code == 1 ]]; then
     # Check if caching is enabled
+    log_message "FFmpeg exited with error code: $exit_code"
     if [[ $cache == "true" ]]; then
-      # If caching is enabled, purge the cache entry
-      rm -f "$cache_file"
+      # If caching is enabled, set revalidation flag
+      cache_revalidate="true"
       # Regenerate a new ffmpeg command
-      ffmpeg_command=$(construct_command)
+      ffmpeg_command=$(check_cache)
       # Run the command again
-      eval "$ffmpeg_command"
+      log_message "Retrying ffmpeg process after revalidation..."
+      eval "$ffmpeg_command" "$log_stderr"
       # Capture the new exit code
       exit_code=$?
-      # If the second attempt fails, return 1 (indicating failure)
-      if [[ $exit_code -eq 1 ]]; then
-        return 1
+      if [[ $exit_code == 1 ]]; then
+        # If the second attempt fails, return 1 (indicating failure)
+        log_message "FFmpeg exited with an error for the second time, giving up!"
+        exit 1
       fi
     fi
     # If caching is not enabled or the second attempt fails, return 1
-    return 1
+    exit 1
   fi
   # Return 0 if the command was successful
-  return 0
+  log_message "FFmpeg exited successfully"
+  exit 0
 }
 
-check_cache() {
-  if [ "$cache" == "true" ]; then
-    # check if cache dir exists, and if not, create it
-    mkdir -p "${cache_dir}"
-
-    # expire cache elements older than specified cache_max time in days
-    find "$cache_dir" -name "ffcmd-*" -mtime +"$cache_max" -exec rm -f {} +
-
-    # create an md5 encoded string with the master input url
-    input_md5=$(echo -n "$input" | md5sum | cut -d ' ' -f1)
-    # create full path for file in cache
-    cache_file="$cache_dir/ffcmd-$input_md5"
-
-    # check if cache file still exists after expiring old cache objects
-    if [ -f "$cache_file" ]; then
-      # pull command from the cache
-      ffmpeg_command=$(< "$cache_file")
-      # check the ffmpeg command for only the first instance of 'exp=[0-9]{10}' which is an expiry timestamp. These are common in akamai streams.
-      if [[ $ffmpeg_command =~ exp=([0-9]{10}) ]]; then
-        # if there is a expiry string in the command, then extract it and check if it is expired
-        if [[ ${BASH_REMATCH[1]} -lt $(date +%s) ]]; then
-          # timestamp is expired, generate a new command and update cache file
-          ffmpeg_command=$(construct_command)
-          echo "$ffmpeg_command" > "$cache_file"
-        fi
-      fi
-    else
-      # no cache file exists, create a cache file
-      ffmpeg_command=$(construct_command)
-      echo "$ffmpeg_command" > "$cache_file"
-    fi
-  else
-    # caching is not enabled, just construct the command
-    ffmpeg_command=$(construct_command)
+log_message() {
+  if [[ "$logging" == "true" ]]; then
+    echo "[ffmpeg-wrapper]: $*" >> "$log_file"
   fi
-  run_command
 }
 
 usage() {
@@ -135,6 +218,7 @@ while [[ $# -gt 0 ]]; do
         shift 2
       else
         echo "Error: Missing value for -i argument."
+        echo
         usage
       fi
       ;;
@@ -144,6 +228,7 @@ while [[ $# -gt 0 ]]; do
         shift 2
       else
         echo "Error: Missing value for -user_agent argument."
+        echo
         usage
       fi
       ;;
@@ -166,8 +251,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$input" || -z "$user_agent" ]]; then
-  echo "Error: Missing required arguments."
+  # Show usage when no arguments supplied
   usage
 fi
 
-check_cache
+start_stream
