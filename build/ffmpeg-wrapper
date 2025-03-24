@@ -1,5 +1,5 @@
 #!/bin/bash
-# get_best_stream.sh written by Jordan Dalley <jordan@dalleyfamily.net>
+# ffmpeg-wrapper.sh written by Jordan Dalley <jordan@dalleyfamily.net>
 # https://github.com/jordandalley/threadfin-get-best-stream
 
 # Enable caching for faster stream starts
