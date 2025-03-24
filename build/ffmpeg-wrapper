@@ -138,7 +138,7 @@ construct_command() {
   log_message "Constructing input side of ffmpeg command..."
   ff_inputs=""
   while IFS= read -r url; do
-    ff_inputs+=" $ffmpeg_proxy -user_agent \"$user_agent\" -thread_queue_size 1000 -i \"$url\""
+    ff_inputs+=" $ffmpeg_proxy -user_agent \"$user_agent\" -analyzeduration 3000000 -probesize 10M -thread_queue_size 1000 -fflags +discardcorrupt+genpts -i \"$url\""
   done <<< "$getUrls"
 
   # below are the various command profiles that are different depending on the livestream
@@ -146,7 +146,7 @@ construct_command() {
   log_message "Generating command for profile $ffmpeg_profile"
   if [[ "$ffmpeg_profile" == "1" ]]; then
     # ffmpeg profile 1 (default): good for most streams
-    output="$ffmpeg_path -y -hide_banner -loglevel $ffmpeg_loglevel -analyzeduration 3000000 -probesize 10M -fflags +discardcorrupt+genpts$ff_inputs -c copy -f mpegts pipe:1"
+    output="$ffmpeg_path -y -hide_banner -loglevel $ffmpeg_loglevel $ff_inputs -c copy -f mpegts pipe:1"
   fi
   log_message "FFmpeg command generated as: $output"
   echo "$output"
