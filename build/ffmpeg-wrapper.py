@@ -123,16 +123,16 @@ def construct_ffmpeg(urls, user_agent, proxy):
         'analyzeduration': '3000000',
         'probesize': '10M'
     }
+
     input_args_url = {
         'user_agent': user_agent,
         'thread_queue_size': '10000'
     }
-
     if proxy:
         input_args_url['http_proxy'] = proxy  # Add the proxy argument if provided
 
     output_args = {
-        'loglevel': FFMPEG_LOG_LEVEL,
+        'loglevel': FFMPEG_LOG_LEVEL,  # Set ffmpeg log level
         'c:v': 'copy',  # Copy the video stream without re-encoding
         'c:a': 'copy',  # Copy the audio stream without re-encoding
         'dn': None, # Don't copy data streams
@@ -155,19 +155,34 @@ def construct_ffmpeg(urls, user_agent, proxy):
     return ffmpeg_command
 
 def ffmpeg_run(ffmpeg_command):
-    """Run the constructed FFmpeg command and log stderr to logging.info."""
+    """Run FFmpeg asynchronously, capture stderr in real-time while letting stdout go to pipe:1."""
     try:
-        # Execute the FFmpeg command with stdout and stderr captured
-        out, err = ffmpeg_command.run(capture_stderr=True, overwrite_output=True, cmd=FFMPEG_PATH)
-        # Log stderr output from FFmpeg using logging.info
-        for line in err.decode().splitlines():
-            logging.info(line)
-        logging.info("FFmpeg process executed successfully.")
-    except ffmpeg.Error as e:
-        # Capture stderr and stdout if FFmpeg fails
-        for line in e.stderr.decode().splitlines():
-            logging.info(line)
-        logging.error(f"An error occurred: {e}")
+        # Log the FFmpeg command to debug
+        logging.info(f"Running FFmpeg command: {ffmpeg_command}")
+
+        # Run the FFmpeg command asynchronously with stderr captured
+        process = ffmpeg_command.run_async(
+            pipe_stderr=True,   # Capture stderr for logging
+            overwrite_output=True,
+            cmd=FFMPEG_PATH
+        )
+
+        # Read stderr in real-time and log it as it is produced
+        for line in process.stderr:
+            # Decode the byte string to a regular string
+            decoded_line = line.decode('utf-8').strip()
+            logging.info(decoded_line)
+            sys.stderr.flush()
+
+        process.wait()  # Wait for FFmpeg to finish
+        logging.info("FFmpeg process has completed.")
+
+    except ffmpeg._run.Error as e:
+        logging.error("FFmpeg encountered an error.")
+        if e.stderr:
+            for line in e.stderr.decode(errors="ignore").splitlines():
+                logging.error(line)
+        logging.exception(e)
 
 def main():
     # initialise vars
@@ -229,7 +244,7 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
-    # First do process control by checking for a lock file associated with the input url md5 hash
+    # first do process control by checking for a lock file associated with the input url md5 hash
     process_control()
     # Set up signal handling
     signal.signal(signal.SIGINT, graceful_exit)
