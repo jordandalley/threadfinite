@@ -217,15 +217,15 @@ def process_control(ffmpeg_pid,uri="ws://127.0.0.1:34400/data/?Token=undefined")
         with open(io_file, 'r') as f:
             io_data = f.read()
 
-        # Extract the initial rchar value
-        rchar_initial = None
+        # Extract the initial wchar value
+        wchar_initial = None
         for line in io_data.splitlines():
-            if line.startswith('rchar'):
-                # Extract value from the rchar line
-                rchar_initial = int(line.split()[1])
+            if line.startswith('wchar'):
+                # Extract value from the wchar line
+                wchar_initial = int(line.split()[1])
                 break
 
-        logging.info(f"[Process-Control]: Initial rchar value of ffmpeg PID {ffmpeg_pid}: {rchar_initial}")
+        logging.info(f"[Process-Control]: Initial wchar value of ffmpeg PID {ffmpeg_pid}: {wchar_initial}")
 
         while True:  # Infinite loop to monitor the process indefinitely
             time.sleep(PROCESS_CONTROL_INTERVAL)  # Sleep for seconds specified in PROCESS_CONTROL_INTERVAL
@@ -237,22 +237,22 @@ def process_control(ffmpeg_pid,uri="ws://127.0.0.1:34400/data/?Token=undefined")
             with open(io_file, 'r') as f:
                 io_data = f.read()
 
-            rchar_current = None
+            wchar_current = None
             for line in io_data.splitlines():
-                if line.startswith('rchar'):
-                    # Extract value from the rchar line
-                    rchar_current = int(line.split()[1])
+                if line.startswith('wchar'):
+                    # Extract value from the wchar line
+                    wchar_current = int(line.split()[1])
                     break
-            logging.info(f"[Process-Control]: Value of rchar for ffmpeg PID {ffmpeg_pid} changed from {rchar_initial} to {rchar_current}")
+            logging.info(f"[Process-Control]: Value of wchar for ffmpeg PID {ffmpeg_pid} changed from {wchar_initial} to {wchar_current}")
 
-            if rchar_current == rchar_initial:
+            if wchar_current == wchar_initial:
                 logging.info(f"[Process-Control]: No activity detected in ffmpeg PID {ffmpeg_pid}. Exiting.")
                 graceful_exit(None, None)
                 return
             else:
-                # Update the initial rchar to the current value if activity was detected
-                rchar_initial = rchar_current
-                # If rchar activity was detected, check to see whether there are any active clients on Threadfin
+                # Update the initial wchar to the current value if activity was detected
+                wchar_initial = wchar_current
+                # If wchar activity was detected, check to see whether there are any active clients on Threadfin
                 logging.info("[Process-Control]: Checking number of active clients")
                 active_clients = get_active_clients(uri)
                 logging.info(f"[Process-Control]: Current number of active clients: {active_clients}")
