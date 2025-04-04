@@ -10,51 +10,52 @@ import signal
 import yt_dlp
 import ffmpeg
 import time
+import json
 import psutil
+import threading
+import websocket
 from datetime import datetime, timedelta
 
-# FFmpeg path (Default: "/usr/bin/ffmpeg-bin")
-FFMPEG_PATH = "/usr/bin/ffmpeg-bin"
+#####################################################################
+############## Set these in docker-compose as ENV vars ##############
+#####################################################################
+# FFmpeg path (Default: '/usr/bin/ffmpeg-bin')
+FFMPEG_PATH = os.getenv('FFWR_FFMPEG_PATH','/usr/bin/ffmpeg-bin')
 # Specifies whether to enable logging (Default: True)
-LOGGING_ENABLED = True
+#LOGGING_ENABLED = os.getenv('FFWR_LOGGING_ENABLED', True).lower() in ('false', '0', 'no')
+LOGGING_ENABLED = str(os.getenv('FFWR_LOGGING_ENABLED', 'True')).lower() not in ('false', '0', 'no')
 # Amount of days that logs should be retained for (Default: 1)
-LOG_RETENTION_DAYS = 1
+LOG_RETENTION_DAYS = int(os.getenv('FFWR_LOG_RETENTION_DAYS', '1') or 1)
 # Specifies the logging path. This is usually mapped to the host in Docker under the config directory. (Default: "/home/threadfin/conf/log")
-LOG_DIR = "/home/threadfin/conf/log"
-# Specify the logging verbosity of ffmpeg. (Default: "verbose")
-FFMPEG_LOG_LEVEL = "verbose"
-# Specify whether ffmpeg-wrapper should work to prevent duplicate and orphan processes. (Default: True)
-PROCESS_CONTROL = True
-
-def process_control():
-    """Check if there's another instance of this script running with the same arguments, and if so, kill it"""
-    if not PROCESS_CONTROL:
-        return None
-
-    current_pid = os.getpid()
-    current_cmdline = sys.argv
-
-    for process in psutil.process_iter(attrs=['pid', 'cmdline']):
-        try:
-            pid = process.info['pid']
-            cmdline = process.info['cmdline']
-
-            if pid != current_pid and cmdline and cmdline == current_cmdline:
-                return process
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
-            continue
-
-    return None
+LOG_DIR = os.getenv('FFWR_LOG_DIR','/home/threadfin/conf/log')
+# Specify the logging verbosity of ffmpeg. (Default: "warning")
+FFMPEG_LOG_LEVEL = os.getenv('FFWR_FFMPEG_LOG_LEVEL', 'warning').lower() if os.getenv('LOG_LEVEL', 'warning').lower() in {'quiet', 'panic', 'fatal', 'error', 'warning', 'info', 'verbose', 'debug', 'trace'} else 'warning'
+# Specify whether ffmpeg-wrapper should enable process control for ffmpeg (Default: True)
+#PROCESS_CONTROL = os.getenv('FFWR_PROCESS_CONTROL', True).lower() in ('false', '0', 'no')
+PROCESS_CONTROL = str(os.getenv('FFWR_PROCESS_CONTROL', 'True')).lower() not in ('false', '0', 'no')
+# Specifies the interval in seconds at which process control should check the ffmpeg process for activity (Default: 60)
+PROCESS_CONTROL_INTERVAL = int(os.getenv('FFWR_PROCESS_CONTROL_INTERVAL', '60') or 60)
 
 def graceful_exit(signal_num, frame):
     """Handler function to handle termination signals gracefully."""
-    print(f"\nReceived signal {signal_num}. Exiting gracefully...")
-    sys.exit(0)  # Exit the program with status 0 (success)
+    if signal_num:
+        logging.info(f"Received signal: {signal_num}")
+    # If the FFmpeg process is running, terminate it
+    if ffmpeg_process:
+        logging.info("Terminating FFmpeg process")
+        ffmpeg_process.terminate()  # Terminate FFmpeg process
+        ffmpeg_process.wait()  # Wait for the process to finish
+        logging.info("FFmpeg process terminated")
+    logging.info("Exiting")
+    sys.exit(0)
 
-def gen_logfile(input_md5):
+def gen_logfile(input_url):
     """Generate a log file"""
     if not LOGGING_ENABLED:
         return None
+
+    # create an md5 hash of the master input url for generating log files
+    input_md5 = hashlib.md5(input_url.encode()).hexdigest()
 
     os.makedirs(LOG_DIR, exist_ok=True)
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -100,7 +101,7 @@ def get_highest_quality_stream(input_url, user_agent, proxy):
             ytdlp.download(input_url)
 
     except Exception as e:
-        print(f"An error occurred: {e}")
+        logging.exception(f"An error occurred: {e}")
         return []
 
     finally:
@@ -138,7 +139,7 @@ def construct_ffmpeg(urls, user_agent, proxy):
         'dn': None, # Don't copy data streams
         'movflags': 'faststart',  # Useful for streaming (moves the moov atom to the beginning of the file)
         'format': 'mpegts',  # Set output format to MPEG-TS
-        'fflags': '+genpts'  # Generate PTS (presentation timestamps)
+        'fflags': '+genpts+nobuffer',  # Generate PTS (presentation timestamps)
     }
     ffmpeg_input = []
     ffmpeg_input.append(ffmpeg.input(urls[0], **input_args_global, **input_args_url))
@@ -156,25 +157,44 @@ def construct_ffmpeg(urls, user_agent, proxy):
 
 def ffmpeg_run(ffmpeg_command):
     """Run FFmpeg asynchronously, capture stderr in real-time while letting stdout go to pipe:1."""
+    global ffmpeg_process  # Ensure the global variable is accessed
+
+    def log_ffmpeg(ffmpeg_process):
+        # Read stderr in real-time and log it as it is produced
+        for line in ffmpeg_process.stderr:
+            # Decode the byte string to a regular string
+            decoded_line = line.decode('utf-8').strip()
+            logging.info(f"[ffmpeg]: {decoded_line}")
+
     try:
         # Log the FFmpeg command to debug
-        logging.info(f"Running FFmpeg command: {ffmpeg_command}")
+        logging.info(f"Starting FFmpeg process...")
 
         # Run the FFmpeg command asynchronously with stderr captured
-        process = ffmpeg_command.run_async(
+        ffmpeg_process = ffmpeg_command.run_async(
             pipe_stderr=True,   # Capture stderr for logging
             overwrite_output=True,
             cmd=FFMPEG_PATH
         )
+        if LOGGING_ENABLED:
+            stderr_thread = threading.Thread(target=log_ffmpeg, args=(ffmpeg_process,))
+            stderr_thread.daemon = True  # Daemonize the thread so it exits when the main program exits
+            stderr_thread.start()
 
-        # Read stderr in real-time and log it as it is produced
-        for line in process.stderr:
-            # Decode the byte string to a regular string
-            decoded_line = line.decode('utf-8').strip()
-            logging.info(decoded_line)
-            sys.stderr.flush()
+        # get the PID of the ffmpeg process
+        ffmpeg_pid = ffmpeg_process.pid
 
-        process.wait()  # Wait for FFmpeg to finish
+        # Log the PID of the FFmpeg process
+        logging.info(f"FFmpeg process started with PID: {ffmpeg_pid}")
+
+        if PROCESS_CONTROL:
+            logging.info("Starting Process Control thread")
+            # Run the check_ffmpeg_activity function in a separate thread
+            monitoring_thread = threading.Thread(target=process_control, args=(ffmpeg_pid,))
+            monitoring_thread.daemon = True
+            monitoring_thread.start()
+
+        ffmpeg_process.wait()  # Wait for FFmpeg to finish
         logging.info("FFmpeg process has completed.")
 
     except ffmpeg._run.Error as e:
@@ -183,6 +203,114 @@ def ffmpeg_run(ffmpeg_command):
             for line in e.stderr.decode(errors="ignore").splitlines():
                 logging.error(line)
         logging.exception(e)
+
+def process_control(ffmpeg_pid,uri="ws://127.0.0.1:34400/data/?Token=undefined"):
+    try:
+        io_file = f"/proc/{ffmpeg_pid}/io"
+
+        # Check if the process exists initially
+        if not os.path.exists(io_file):
+            logging.info(f"[Process-Control]: FFmpeg process with PID {ffmpeg_pid} does not exist. Something is broken!")
+            graceful_exit(None, None)
+            return
+
+        with open(io_file, 'r') as f:
+            io_data = f.read()
+
+        # Extract the initial rchar value
+        rchar_initial = None
+        for line in io_data.splitlines():
+            if line.startswith('rchar'):
+                # Extract value from the rchar line
+                rchar_initial = int(line.split()[1])
+                break
+
+        logging.info(f"[Process-Control]: Initial rchar value of ffmpeg PID {ffmpeg_pid}: {rchar_initial}")
+
+        while True:  # Infinite loop to monitor the process indefinitely
+            time.sleep(PROCESS_CONTROL_INTERVAL)  # Sleep for seconds specified in PROCESS_CONTROL_INTERVAL
+            if not os.path.exists(io_file):
+                logging.info(f"[Process-Control]: FFmpeg process with ffmpeg PID {ffmpeg_pid} no longer exists.")
+                graceful_exit(None, None)
+                return
+
+            with open(io_file, 'r') as f:
+                io_data = f.read()
+
+            rchar_current = None
+            for line in io_data.splitlines():
+                if line.startswith('rchar'):
+                    # Extract value from the rchar line
+                    rchar_current = int(line.split()[1])
+                    break
+            logging.info(f"[Process-Control]: Value of rchar for ffmpeg PID {ffmpeg_pid} changed from {rchar_initial} to {rchar_current}")
+
+            if rchar_current == rchar_initial:
+                logging.info(f"[Process-Control]: No activity detected in ffmpeg PID {ffmpeg_pid}. Exiting.")
+                graceful_exit(None, None)
+                return
+            else:
+                # Update the initial rchar to the current value if activity was detected
+                rchar_initial = rchar_current
+                # If rchar activity was detected, check to see whether there are any active clients on Threadfin
+                logging.info("[Process-Control]: Checking number of active clients")
+                active_clients = get_active_clients(uri)
+                logging.info(f"[Process-Control]: Current number of active clients: {active_clients}")
+                if active_clients == 0:
+                    logging.info(f"[Process-Control]: Number of active clients has reached {active_clients}, exiting...")
+                    graceful_exit(None, None)
+                    return
+
+    except Exception as e:
+        logging.error(f"[Process-Control]: An error occurred while monitoring ffmpeg PID {ffmpeg_pid}: {e}")
+        graceful_exit(None, None)
+
+def get_active_clients(uri):
+    timeout=1
+    # turn off noisy websocket logging
+    logging.getLogger("websocket").setLevel(logging.CRITICAL)
+    # api message through threadfin websocket
+    message='{"cmd":"updateLog"}'
+    # Variable to store the received data
+    received_data = None
+
+    # Function to handle the received message
+    def on_message(ws, message):
+        nonlocal received_data
+        try:
+            # Decode the JSON response and store it in a variable
+            received_data = json.loads(message)
+        except json.JSONDecodeError as e:
+            return e
+        ws.close()
+
+    # Function to handle the WebSocket opening
+    def on_open(ws):
+        ws.send(message)  # Send the provided message to the WebSocket server
+
+    # Set up the WebSocket app
+    ws = websocket.WebSocketApp(uri, on_message=on_message, on_open=on_open)
+
+    # Start the WebSocket app in a separate thread
+    def run_ws():
+        ws.run_forever(ping_interval=2, ping_timeout=1)  # Ensure ping_interval > ping_timeout
+
+    websocket_thread = threading.Thread(target=run_ws)
+    websocket_thread.start()
+
+    # Wait for the WebSocket to finish or timeout
+    start_time = time.time()
+
+    while websocket_thread.is_alive():
+        # Check if the timeout has passed
+        if time.time() - start_time > timeout:
+            ws.close()
+            websocket_thread.join()  # Ensure that the thread finishes
+            break
+        time.sleep(0.1)
+
+    # Return the received data client info for number of active clients
+    return received_data["clientInfo"]["activeClients"]
 
 def main():
     # initialise vars
@@ -211,13 +339,15 @@ def main():
     user_agent = args.user_agent
     proxy = args.http_proxy
 
-    # create an md5 hash of the master input url for generating log files
-    input_md5 = hashlib.md5(input_url.encode()).hexdigest()
+    # get current pid the script
+    script_pid = os.getpid()
 
     # setup logging and start with general info about the stream. this function will also check if logging is enabled.
-    log_file = gen_logfile(input_md5)
+    log_file = gen_logfile(input_url)
 
     if log_file:
+        logging.info("Starting ffmpeg-wrapper for Threadfinite: https://github.com/jordandalley/threadfinite")
+        logging.info(f"Script PID: {script_pid}")
         logging.info(f"Master URL: {input_url}")
         logging.info(f"User Agent: {user_agent}")
         if proxy:
@@ -225,6 +355,7 @@ def main():
         logging.info(f"Log Retention: {LOG_RETENTION_DAYS} day(s)")
         logging.info(f"FFmpeg Log Level: {FFMPEG_LOG_LEVEL}")
         logging.info(f"Cleaning logs older than {LOG_RETENTION_DAYS} days")
+        logging.info(f"Process Control Enabled: {PROCESS_CONTROL}")
 
         # clean up old logs
         clean_old_logs()
@@ -234,7 +365,6 @@ def main():
         # fetch highest quality urls using yt-dlp python library
         urls = get_highest_quality_stream(input_url, user_agent, proxy)
         logging.info(f"Found the following url(s): {urls}")
-        logging.info("Constructing FFmpeg command and running...")
         # construct ffmpeg command using python-ffmpeg
         ffmpeg_command = construct_ffmpeg(urls, user_agent, proxy)
         # run ffmpeg
@@ -244,8 +374,8 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
-    # first do process control by checking for a lock file associated with the input url md5 hash
-    process_control()
+    # create ffmpeg_command as a global variable
+    ffmpeg_process = None
     # Set up signal handling
     signal.signal(signal.SIGINT, graceful_exit)
     signal.signal(signal.SIGTERM, graceful_exit)
