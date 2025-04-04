@@ -35,6 +35,8 @@ FFMPEG_LOG_LEVEL = os.getenv('FFWR_FFMPEG_LOG_LEVEL', 'warning').lower() if os.g
 PROCESS_CONTROL = str(os.getenv('FFWR_PROCESS_CONTROL', 'True')).lower() not in ('false', '0', 'no')
 # Specifies the interval in seconds at which process control should check the ffmpeg process for activity (Default: 60)
 PROCESS_CONTROL_INTERVAL = int(os.getenv('FFWR_PROCESS_CONTROL_INTERVAL', '60') or 60)
+# Log level for script
+LOGLEVEL = "INFO"
 
 def graceful_exit(signal_num, frame):
     """Handler function to handle termination signals gracefully."""
@@ -61,7 +63,7 @@ def gen_logfile(input_url):
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     log_file = os.path.join(LOG_DIR, f"{input_md5}_{timestamp}.log")
 
-    logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s.%(msecs)03d - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    logging.basicConfig(filename=log_file, level=getattr(logging, LOGLEVEL), format='%(asctime)s.%(msecs)03d - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     return log_file
 
 def clean_old_logs():
@@ -210,7 +212,7 @@ def process_control(ffmpeg_pid,uri="ws://127.0.0.1:34400/data/?Token=undefined")
 
         # Check if the process exists initially
         if not os.path.exists(io_file):
-            logging.info(f"[Process-Control]: FFmpeg process with PID {ffmpeg_pid} does not exist. Something is broken!")
+            logging.error(f"[Process-Control]: FFmpeg process with PID {ffmpeg_pid} does not exist. Something is broken!")
             graceful_exit(None, None)
             return
 
@@ -225,7 +227,7 @@ def process_control(ffmpeg_pid,uri="ws://127.0.0.1:34400/data/?Token=undefined")
                 wchar_initial = int(line.split()[1])
                 break
 
-        logging.info(f"[Process-Control]: Initial wchar value of ffmpeg PID {ffmpeg_pid}: {wchar_initial}")
+        logging.debug(f"[Process-Control]: Initial wchar value of ffmpeg PID {ffmpeg_pid}: {wchar_initial}")
 
         while True:  # Infinite loop to monitor the process indefinitely
             time.sleep(PROCESS_CONTROL_INTERVAL)  # Sleep for seconds specified in PROCESS_CONTROL_INTERVAL
@@ -243,21 +245,19 @@ def process_control(ffmpeg_pid,uri="ws://127.0.0.1:34400/data/?Token=undefined")
                     # Extract value from the wchar line
                     wchar_current = int(line.split()[1])
                     break
-            logging.info(f"[Process-Control]: Value of wchar for ffmpeg PID {ffmpeg_pid} changed from {wchar_initial} to {wchar_current}")
+            logging.debug(f"[Process-Control]: Value of wchar for ffmpeg PID {ffmpeg_pid} changed from {wchar_initial} to {wchar_current}")
 
             if wchar_current == wchar_initial:
-                logging.info(f"[Process-Control]: No activity detected in ffmpeg PID {ffmpeg_pid}. Exiting.")
+                logging.info(f"[Process-Control]: No activity detected in ffmpeg PID {ffmpeg_pid}")
                 graceful_exit(None, None)
                 return
             else:
                 # Update the initial wchar to the current value if activity was detected
                 wchar_initial = wchar_current
                 # If wchar activity was detected, check to see whether there are any active clients on Threadfin
-                logging.info("[Process-Control]: Checking number of active clients")
                 active_clients = get_active_clients(uri)
-                logging.info(f"[Process-Control]: Current number of active clients: {active_clients}")
+                logging.debug(f"[Process-Control]: Current number of active clients: {active_clients}")
                 if active_clients == 0:
-                    logging.info(f"[Process-Control]: Number of active clients has reached {active_clients}, exiting...")
                     graceful_exit(None, None)
                     return
 
