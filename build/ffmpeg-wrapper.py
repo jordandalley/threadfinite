@@ -206,7 +206,7 @@ def ffmpeg_run(ffmpeg_command):
                 logging.error(line)
         logging.exception(e)
 
-def process_control(ffmpeg_pid,uri="ws://127.0.0.1:34400/data/?Token=undefined"):
+"""def process_control(ffmpeg_pid,uri="ws://127.0.0.1:34400/data/?Token=undefined"):
     try:
         io_file = f"/proc/{ffmpeg_pid}/io"
 
@@ -264,6 +264,100 @@ def process_control(ffmpeg_pid,uri="ws://127.0.0.1:34400/data/?Token=undefined")
     except Exception as e:
         logging.error(f"[Process-Control]: An error occurred while monitoring ffmpeg PID {ffmpeg_pid}: {e}")
         graceful_exit(None, None)
+"""
+
+def process_control(ffmpeg_pid, uri="ws://127.0.0.1:34400/data/?Token=undefined"):
+    try:
+        io_file = f"/proc/{ffmpeg_pid}/io"
+
+        # Check if the process exists initially
+        if not os.path.exists(io_file):
+            logging.error(f"[Process-Control]: FFmpeg process with PID {ffmpeg_pid} does not exist. Exiting.")
+            graceful_exit(None, None)
+            return
+
+        with open(io_file, 'r') as f:
+            io_data = f.read().strip()
+
+        if not io_data:
+            logging.error(f"[Process-Control]: Could not read data from {io_file}.")
+            graceful_exit(None, None)
+            return
+
+        # Extract the initial wchar value
+        wchar_initial = None
+        for line in io_data.splitlines():
+            if line.startswith('wchar'):
+                parts = line.split()
+                if len(parts) < 2:
+                    logging.error(f"[Process-Control]: Malformed 'wchar' line: {line}")
+                    return
+                try:
+                    wchar_initial = int(parts[1])
+                except ValueError:
+                    logging.error(f"[Process-Control]: Invalid integer in 'wchar' line: {line}")
+                    return
+                break
+
+        logging.debug(f"[Process-Control]: Initial wchar value of ffmpeg PID {ffmpeg_pid}: {wchar_initial}")
+
+        while True:
+            time.sleep(PROCESS_CONTROL_INTERVAL)
+
+            if not os.path.exists(io_file):
+                logging.info(f"[Process-Control]: FFmpeg process with PID {ffmpeg_pid} no longer exists. Exiting.")
+                graceful_exit(None, None)
+                return
+
+            with open(io_file, 'r') as f:
+                io_data = f.read().strip()
+
+            if not io_data:
+                logging.error(f"[Process-Control]: Failed to read from {io_file}.")
+                continue
+
+            wchar_current = None
+            for line in io_data.splitlines():
+                if line.startswith('wchar'):
+                    parts = line.split()
+                    if len(parts) < 2:
+                        logging.error(f"[Process-Control]: Malformed 'wchar' line: {line}")
+                        return
+                    try:
+                        wchar_current = int(parts[1])
+                    except ValueError:
+                        logging.error(f"[Process-Control]: Invalid integer in 'wchar' line: {line}")
+                        return
+                    break
+
+            if wchar_current is None:
+                logging.warning(f"[Process-Control]: Unable to retrieve wchar value for PID {ffmpeg_pid}.")
+                continue
+
+            logging.debug(f"[Process-Control]: wchar value changed from {wchar_initial} to {wchar_current}")
+
+            if wchar_current == wchar_initial:
+                logging.info(f"[Process-Control]: No activity detected in ffmpeg PID {ffmpeg_pid}. Exiting.")
+                graceful_exit(None, None)
+                return
+
+            wchar_initial = wchar_current
+            active_clients = get_active_clients(uri)
+            if active_clients is None:
+                logging.error(f"[Process-Control]: get_active_clients returned None!")
+                active_clients = 0
+
+            logging.debug(f"[Process-Control]: Active clients: {active_clients}")
+
+            if active_clients == 0:
+                logging.info(f"[Process-Control]: No active clients detected. Exiting.")
+                graceful_exit(None, None)
+                return
+
+    except Exception as e:
+        logging.error(f"[Process-Control]: An error occurred while monitoring ffmpeg PID {ffmpeg_pid}: {e}")
+        graceful_exit(None, None)
+
 
 def get_active_clients(uri):
     timeout=1
