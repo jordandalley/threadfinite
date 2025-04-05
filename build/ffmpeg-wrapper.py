@@ -114,7 +114,7 @@ def get_highest_quality_stream(input_url, user_agent, proxy):
             ytdlp.download(input_url)
 
     except Exception as e:
-        logging.exception(f"An error occurred: {e}")
+        logging.error(f"An error occurred: {e}")
         return []
 
     finally:
@@ -203,7 +203,7 @@ def ffmpeg_run(ffmpeg_command):
         if PROCESS_CONTROL:
             logging.info("Starting Process Control thread")
             # Run the check_ffmpeg_activity function in a separate thread
-            monitoring_thread = threading.Thread(target=process_control, args=(ffmpeg_pid,))
+            monitoring_thread = threading.Thread(target=process_control)
             monitoring_thread.daemon = True
             monitoring_thread.start()
 
@@ -215,147 +215,116 @@ def ffmpeg_run(ffmpeg_command):
         if e.stderr:
             for line in e.stderr.decode(errors="ignore").splitlines():
                 logging.error(line)
-        logging.exception(e)
+        logging.error(e)
 
-def process_control(ffmpeg_pid, uri="ws://127.0.0.1:34400/data/?Token=undefined"):
+def process_control():
+    # check if authentication is enabled on the web interface
+    config_dir = os.getenv('THREADFIN_CONF', '/home/threadfin/conf')
+    settings_file = os.path.join(config_dir, 'settings.json')
+    auth_enabled = None
+
     try:
-        io_file = f"/proc/{ffmpeg_pid}/io"
+        with open(settings_file, 'r') as file:  # Fixed variable 'file_path' to 'settings_file'
+            # Load the JSON data
+            data = json.load(file)
 
-        # Check if the process exists initially
-        if not os.path.exists(io_file):
-            logging.error(f"[Process-Control]: FFmpeg process with PID {ffmpeg_pid} does not exist. Exiting.")
-            graceful_exit(None, None)
-            return
+            # Access the value of "authentication.web"
+            auth_enabled = data.get("authentication.web", None)
 
-        with open(io_file, 'r') as f:
-            io_data = f.read().strip()
+    except FileNotFoundError:
+        logging.error(f"[Process-Control] Can't check Threadfin settings, file path {settings_file} doesn't exist.")
+        return
+    except json.JSONDecodeError:
+        logging.error("[Process-Control] Error decoding JSON from Threadfin settings file.")
+        return
+    except Exception as e:
+        logging.error(f"[Process-Control] An error occurred while checking Threadfin settings file: {e}")
+        return
 
-        if not io_data:
-            logging.error(f"[Process-Control]: Could not read data from {io_file}.")
-            graceful_exit(None, None)
-            return
+    if auth_enabled is True:
+        logging.error("[Process-Control]: Web authentication is enabled. This is not supported with process-control.")
+        return
+    if auth_enabled is None:
+        logging.error("[Process-Control]: Unable to determine if web authentication is enabled. Disabling process-control.")
+        return
 
-        # Extract the initial wchar value
-        wchar_initial = None
-        for line in io_data.splitlines():
-            if line.startswith('wchar'):
-                parts = line.split()
-                if len(parts) < 2:
-                    logging.error(f"[Process-Control]: Malformed 'wchar' line: {line}")
-                    return
-                try:
-                    wchar_initial = int(parts[1])
-                except ValueError:
-                    logging.error(f"[Process-Control]: Invalid integer in 'wchar' line: {line}")
-                    return
-                break
+    # get bind IP and port from env vars
+    ipaddr = os.getenv('THREADFIN_BIND_IP_ADDRESS', '127.0.0.1')
+    port = os.getenv('THREADFIN_PORT', '34400')
 
-        logging.debug(f"[Process-Control]: Initial wchar value of ffmpeg PID {ffmpeg_pid}: {wchar_initial}")
+    if ipaddr == "0.0.0.0":
+        ipaddr = "127.0.0.1"
+    uri = f"ws://{ipaddr}:{port}/data/?Token=undefined"
+    logging.debug(f"[Process-Control]: URI detected as {uri}")
 
+    active_clients = 0
+    try:
         while True:
             time.sleep(PROCESS_CONTROL_INTERVAL)
-
-            if not os.path.exists(io_file):
-                logging.info(f"[Process-Control]: FFmpeg process with PID {ffmpeg_pid} no longer exists. Exiting.")
-                graceful_exit(None, None)
-                return
-
-            with open(io_file, 'r') as f:
-                io_data = f.read().strip()
-
-            if not io_data:
-                logging.error(f"[Process-Control]: Failed to read from {io_file}.")
-                continue
-
-            wchar_current = None
-            for line in io_data.splitlines():
-                if line.startswith('wchar'):
-                    parts = line.split()
-                    if len(parts) < 2:
-                        logging.error(f"[Process-Control]: Malformed 'wchar' line: {line}")
-                        return
-                    try:
-                        wchar_current = int(parts[1])
-                    except ValueError:
-                        logging.error(f"[Process-Control]: Invalid integer in 'wchar' line: {line}")
-                        return
-                    break
-
-            if wchar_current is None:
-                logging.warning(f"[Process-Control]: Unable to retrieve wchar value for PID {ffmpeg_pid}.")
-                continue
-
-            logging.debug(f"[Process-Control]: wchar value changed from {wchar_initial} to {wchar_current}")
-
-            if wchar_current == wchar_initial:
-                logging.info(f"[Process-Control]: No activity detected in ffmpeg PID {ffmpeg_pid}. Exiting.")
-                graceful_exit(None, None)
-                return
-
-            wchar_initial = wchar_current
             active_clients = get_active_clients(uri)
-            if active_clients is None:
-                logging.error(f"[Process-Control]: get_active_clients returned None!")
-                active_clients = 0
 
             logging.debug(f"[Process-Control]: Active clients: {active_clients}")
 
+            if active_clients is None:
+                logging.error(f"[Process-Control]: Active clients check returned 'None'!")
+                continue  # Continue the loop if active_clients is None
+
             if active_clients == 0:
-                logging.info(f"[Process-Control]: No active clients detected. Exiting.")
+                logging.info(f"[Process-Control]: No active clients detected.")
                 graceful_exit(None, None)
                 return
 
     except Exception as e:
-        logging.error(f"[Process-Control]: An error occurred while monitoring ffmpeg PID {ffmpeg_pid}: {e}")
-        graceful_exit(None, None)
+        logging.error(f"[Process-Control]: An error occurred while monitoring threadfin: {e}")
+        # Continue the loop to keep monitoring
+        time.sleep(PROCESS_CONTROL_INTERVAL)
 
-
-def get_active_clients(uri):
-    timeout=1
+def get_active_clients(uri, timeout=5):
     # turn off noisy websocket logging
     logging.getLogger("websocket").setLevel(logging.CRITICAL)
-    # api message through threadfin websocket
-    message='{"cmd":"updateLog"}'
-    # Variable to store the received data
+    message = '{"cmd":"updateLog"}'
     received_data = None
 
-    # Function to handle the received message
     def on_message(ws, message):
         nonlocal received_data
         try:
-            # Decode the JSON response and store it in a variable
             received_data = json.loads(message)
         except json.JSONDecodeError as e:
-            return e
-        ws.close()
+            logging.error(f"Failed to decode JSON: {e}")
+        finally:
+            ws.close()
+            return None
 
-    # Function to handle the WebSocket opening
     def on_open(ws):
-        ws.send(message)  # Send the provided message to the WebSocket server
+        ws.send(message)
 
-    # Set up the WebSocket app
     ws = websocket.WebSocketApp(uri, on_message=on_message, on_open=on_open)
 
-    # Start the WebSocket app in a separate thread
     def run_ws():
-        ws.run_forever(ping_interval=2, ping_timeout=1)  # Ensure ping_interval > ping_timeout
+        ws.run_forever(ping_interval=4, ping_timeout=2)
 
     websocket_thread = threading.Thread(target=run_ws)
     websocket_thread.start()
 
-    # Wait for the WebSocket to finish or timeout
     start_time = time.time()
 
     while websocket_thread.is_alive():
-        # Check if the timeout has passed
         if time.time() - start_time > timeout:
+            logging.warning("WebSocket connection timed out.")
             ws.close()
-            websocket_thread.join()  # Ensure that the thread finishes
+            websocket_thread.join()
             break
         time.sleep(0.1)
 
-    # Return the received data client info for number of active clients
-    return received_data["clientInfo"]["activeClients"]
+    if received_data:
+        try:
+            return received_data["clientInfo"]["activeClients"]
+        except KeyError:
+            logging.error("Received data is missing expected keys.")
+            return None
+    else:
+        logging.error("No data received from WebSocket.")
+        return None
 
 def main():
     # initialise vars
@@ -415,7 +384,7 @@ def main():
         # run ffmpeg
         ffmpeg_run(ffmpeg_command)
     except Exception as e:
-        logging.exception(f"An unexpected error occurred: {e}")
+        logging.error(f"An unexpected error occurred: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":

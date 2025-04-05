@@ -8,11 +8,6 @@ An optimisation of the official [Threadfin](https://github.com/Threadfin/Threadf
 - Support for running custom ffmpeg static binaries (eg. less buggy versions)
 - Adds better docker process handling with 'supervisord'
 
-## To Fix
-
-- Web authentication enabled in threadfin will cause process control to think there's no active clients and kills the stream
-- Assumes that the web interface is accessible via 127.0.0.1:34400
-
 ## Optimisation Wrapper for FFmpeg
 
 When using proxy mode in threadfin with ffmpeg, it ignores individual stream quality information in the m3u8 manifest and probes all streams to determine which is the highest resolution and quality. This is time consuming and not optimal when the m3u8 manifest contains all the relevant information necessary to determine the best stream.
