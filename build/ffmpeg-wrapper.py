@@ -133,14 +133,15 @@ def get_highest_quality_stream(input_url, user_agent, proxy):
 def construct_ffmpeg(urls, user_agent, proxy):
     """Construct the FFmpeg process based on the retrieved URLs."""
     input_args_global = {
+        'hide_banner': None,
         'fflags': '+discardcorrupt+genpts',
-        'analyzeduration': '5000000',
-        'probesize': '5000000',
+        'analyzeduration': '1000000',
+        'probesize': '1000000',
     }
 
     input_args_url = {
         'user_agent': user_agent,
-        'thread_queue_size': '100000'
+        'thread_queue_size': '10000'
     }
     if proxy:
         input_args_url['http_proxy'] = proxy  # Add the proxy argument if provided
