@@ -26,14 +26,17 @@ Logs for the wrapper script are stored in config/log and retained for 1 day by d
 ## What does the Dockerfile do?
 
 - Adds & removes apt packages in the official Threadfin docker image:
-  - python3-pip: added for installing python packages psutil and ffmpeg-python
-  - supervisord: added for better process handling, and running nscd alongside the threadfin process
-  - nscd: needed for dns resolution of official ffmpeg static builds
-  - yt-dlp: used by the ffmpeg wrapper script for parsing m3u manifests
-  - ffmpeg: remove this apt package so we can use our own ffmpeg binaries
+  - Add: python3-pip added for installing python packages
+  - Add: supervisord added for better process handling, and running nscd alongside the threadfin process
+  - Add: nscd needed for dns resolution of official ffmpeg static builds
+  - Remove: ffmpeg remove this apt package so we can use our own ffmpeg binaries
 - Copies the ffmpeg wrapper script in build/ffmpeg-wrapper.py to /usr/bin/ffmpeg
 - Copies the supplied ffmpeg static binary from build/ffmpeg to /usr/bin/ffmpeg-bin
 - Installs all requirements in requirements.txt using pip3
+  - Add: ffmpeg-python
+  - Add: yt-dlp
+  - Add: psutil
+  - Add: websocket-client
 
 ## Installation
 
@@ -67,10 +70,11 @@ There shouldn't normally be any reason to change these defaults, unless running 
 
 | Variable | Type | Description | Default |
 | --- | --- | --- | --- | 
-| FFWR_FFMPEG_PATH | string | Path to the official ffmpeg binary inside the container | "/usr/bin/ffmpeg-bin" |
+| FFWR_FFMPEG_PATH | string | Path to the official ffmpeg binary inside the container | /usr/bin/ffmpeg-bin |
 | FFWR_LOGGING_ENABLED | boolean | Specifies whether to enable logging | True |
+| FFWR_LOG_LEVEL | string | Specifies the log level of the script. Valid options: 'NOTSET', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL' | INFO |
 | FFWR_LOG_RETENTION_DAYS | integer | Specifies the maximum amount of days that log files should be retained for | 1 |
-| FFWR_LOG_DIR | string | Specifies the path in which to store the log files | "/home/threadfin/conf/log" |
-| FFWR_FFMPEG_LOG_LEVEL | string | Specifies the verbosity of ffmpeg logging, if logging is enabled: Valid options include: quiet, info, verbose, and debug | "verbose" |
+| FFWR_LOG_DIR | string | Specifies the path in which to store the log files | /home/threadfin/conf/log |
+| FFWR_FFMPEG_LOG_LEVEL | string | Specifies the verbosity of ffmpeg logging, if logging is enabled: Valid options: 'quiet', 'panic', 'fatal', 'error', 'warning', 'debug', 'trace' | verbose |
 | FFWR_PROCESS_CONTROL | boolean | Specifies whether to check run process control, which checks for inactive ffmpeg processes and ensures all processes exit when threadfin active clients is 0 | True |
 | FFWR_PROCESS_CONTROL_INTERVAL | integer | Specifies the interval, in seconds in which to run process control | 60 |

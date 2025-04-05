@@ -22,32 +22,43 @@ from datetime import datetime, timedelta
 # FFmpeg path (Default: '/usr/bin/ffmpeg-bin')
 FFMPEG_PATH = os.getenv('FFWR_FFMPEG_PATH','/usr/bin/ffmpeg-bin')
 # Specifies whether to enable logging (Default: True)
-#LOGGING_ENABLED = os.getenv('FFWR_LOGGING_ENABLED', True).lower() in ('false', '0', 'no')
 LOGGING_ENABLED = str(os.getenv('FFWR_LOGGING_ENABLED', 'True')).lower() not in ('false', '0', 'no')
+# Sets the log level for the script. Valid values: 'NOTSET', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL' (Default: "INFO")
+LOG_LEVEL = os.getenv('FFWR_LOG_LEVEL', 'INFO').upper() if os.getenv('LOG_LEVEL', 'INFO').upper() in {'NOTSET', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'} else 'INFO'
 # Amount of days that logs should be retained for (Default: 1)
 LOG_RETENTION_DAYS = int(os.getenv('FFWR_LOG_RETENTION_DAYS', '1') or 1)
 # Specifies the logging path. This is usually mapped to the host in Docker under the config directory. (Default: "/home/threadfin/conf/log")
 LOG_DIR = os.getenv('FFWR_LOG_DIR','/home/threadfin/conf/log')
-# Specify the logging verbosity of ffmpeg. (Default: "warning")
+# Specify the logging verbosity of ffmpeg. Valid values: 'quiet', 'panic', 'fatal', 'error', 'warning', 'info', 'verbose', 'debug', 'trace' (Default: "warning")
 FFMPEG_LOG_LEVEL = os.getenv('FFWR_FFMPEG_LOG_LEVEL', 'warning').lower() if os.getenv('LOG_LEVEL', 'warning').lower() in {'quiet', 'panic', 'fatal', 'error', 'warning', 'info', 'verbose', 'debug', 'trace'} else 'warning'
 # Specify whether ffmpeg-wrapper should enable process control for ffmpeg (Default: True)
-#PROCESS_CONTROL = os.getenv('FFWR_PROCESS_CONTROL', True).lower() in ('false', '0', 'no')
 PROCESS_CONTROL = str(os.getenv('FFWR_PROCESS_CONTROL', 'True')).lower() not in ('false', '0', 'no')
 # Specifies the interval in seconds at which process control should check the ffmpeg process for activity (Default: 60)
 PROCESS_CONTROL_INTERVAL = int(os.getenv('FFWR_PROCESS_CONTROL_INTERVAL', '60') or 60)
-# Log level for script
-LOGLEVEL = "INFO"
 
 def graceful_exit(signal_num, frame):
-    """Handler function to handle termination signals gracefully."""
+    """Handler function to handle termination signals and other calls gracefully."""
     if signal_num:
         logging.info(f"Received signal: {signal_num}")
-    # If the FFmpeg process is running, terminate it
-    if ffmpeg_process:
-        logging.info("Terminating FFmpeg process")
-        ffmpeg_process.terminate()  # Terminate FFmpeg process
-        ffmpeg_process.wait()  # Wait for the process to finish
-        logging.info("FFmpeg process terminated")
+
+    # If the FFmpeg process is running, try to terminate it
+    if ffmpeg_process and ffmpeg_process.poll() is None:
+        logging.info("Attempting to terminate FFmpeg process gracefully")
+
+        # First attempt to terminate the process
+        ffmpeg_process.terminate()
+
+        # Wait for up to 60 seconds for the process to terminate
+        start_time = time.time()
+        while ffmpeg_process.poll() is None:
+            elapsed_time = time.time() - start_time
+            if elapsed_time > 60:
+                logging.warning("FFmpeg process still not terminated, sending a SIGKILL")
+                ffmpeg_process.kill()
+                break
+            time.sleep(1)
+
+        logging.info("FFmpeg process terminated.")
     logging.info("Exiting")
     sys.exit(0)
 
@@ -63,7 +74,7 @@ def gen_logfile(input_url):
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     log_file = os.path.join(LOG_DIR, f"{input_md5}_{timestamp}.log")
 
-    logging.basicConfig(filename=log_file, level=getattr(logging, LOGLEVEL), format='%(asctime)s.%(msecs)03d - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    logging.basicConfig(filename=log_file, level=getattr(logging, LOG_LEVEL), format='%(asctime)s.%(msecs)03d - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     return log_file
 
 def clean_old_logs():
@@ -205,66 +216,6 @@ def ffmpeg_run(ffmpeg_command):
             for line in e.stderr.decode(errors="ignore").splitlines():
                 logging.error(line)
         logging.exception(e)
-
-"""def process_control(ffmpeg_pid,uri="ws://127.0.0.1:34400/data/?Token=undefined"):
-    try:
-        io_file = f"/proc/{ffmpeg_pid}/io"
-
-        # Check if the process exists initially
-        if not os.path.exists(io_file):
-            logging.error(f"[Process-Control]: FFmpeg process with PID {ffmpeg_pid} does not exist. Something is broken!")
-            graceful_exit(None, None)
-            return
-
-        with open(io_file, 'r') as f:
-            io_data = f.read()
-
-        # Extract the initial wchar value
-        wchar_initial = None
-        for line in io_data.splitlines():
-            if line.startswith('wchar'):
-                # Extract value from the wchar line
-                wchar_initial = int(line.split()[1])
-                break
-
-        logging.debug(f"[Process-Control]: Initial wchar value of ffmpeg PID {ffmpeg_pid}: {wchar_initial}")
-
-        while True:  # Infinite loop to monitor the process indefinitely
-            time.sleep(PROCESS_CONTROL_INTERVAL)  # Sleep for seconds specified in PROCESS_CONTROL_INTERVAL
-            if not os.path.exists(io_file):
-                logging.info(f"[Process-Control]: FFmpeg process with ffmpeg PID {ffmpeg_pid} no longer exists.")
-                graceful_exit(None, None)
-                return
-
-            with open(io_file, 'r') as f:
-                io_data = f.read()
-
-            wchar_current = None
-            for line in io_data.splitlines():
-                if line.startswith('wchar'):
-                    # Extract value from the wchar line
-                    wchar_current = int(line.split()[1])
-                    break
-            logging.debug(f"[Process-Control]: Value of wchar for ffmpeg PID {ffmpeg_pid} changed from {wchar_initial} to {wchar_current}")
-
-            if wchar_current == wchar_initial:
-                logging.info(f"[Process-Control]: No activity detected in ffmpeg PID {ffmpeg_pid}")
-                graceful_exit(None, None)
-                return
-            else:
-                # Update the initial wchar to the current value if activity was detected
-                wchar_initial = wchar_current
-                # If wchar activity was detected, check to see whether there are any active clients on Threadfin
-                active_clients = get_active_clients(uri)
-                logging.debug(f"[Process-Control]: Current number of active clients: {active_clients}")
-                if active_clients == 0:
-                    graceful_exit(None, None)
-                    return
-
-    except Exception as e:
-        logging.error(f"[Process-Control]: An error occurred while monitoring ffmpeg PID {ffmpeg_pid}: {e}")
-        graceful_exit(None, None)
-"""
 
 def process_control(ffmpeg_pid, uri="ws://127.0.0.1:34400/data/?Token=undefined"):
     try:
