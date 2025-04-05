@@ -4,7 +4,7 @@ An optimisation of the official [Threadfin](https://github.com/Threadfin/Threadf
 ## Features
 
 - Optimised highest-quality stream selection
-- Prevents orphaned streams and duplicate ffmpeg processes being spawned from Threadfin
+- Checks periodically for active client counts within threadfin and exits stuck ffmpeg processes
 - Support for running custom ffmpeg static binaries (eg. less buggy versions)
 - Adds better docker process handling with 'supervisord'
 
@@ -50,10 +50,10 @@ docker compose up -d
 ```
 6. Update your Threadfin settings
 
-![image](https://github.com/user-attachments/assets/a14bb329-31e0-4b06-b553-b093141640c2)
+![image](https://github.com/user-attachments/assets/bdfae0b5-0ac8-418e-b51d-57b489b3a1c9)
 
   - Buffer Size: Start at 0.5MB and work your way up if you have buffering problems
-  - Timeout for new client connections: Set this to '0'
+  - Timeout for new client connections: Set this to '500'
   - User Agent: I set mine to a common browser UA, such as ```Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36```
   - FFmpeg Binary Path: Set this to "/usr/bin/ffmpeg" if it isn't already set this way
 
