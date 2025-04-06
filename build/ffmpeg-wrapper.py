@@ -14,6 +14,7 @@ import json
 import psutil
 import threading
 import websocket
+import socket
 from datetime import datetime, timedelta
 
 #####################################################################
@@ -259,9 +260,8 @@ def process_control():
     if forceHttps is None:
         logging.error("[Process-Control]: Unable to determine if force https is enabled. Disabling process-control.")
         return
-
-    if bindIpAddress == "0.0.0.0":
-        bindIpAddress = "127.0.0.1"
+    if bindIpAddress == "0.0.0.0" or bindIpAddress is None or bindIpAddress == "":
+        bindIpAddress = socket.gethostbyname(socket.gethostname())
     uri = f"ws://{bindIpAddress}:{port}/data/?Token=undefined"
     logging.debug(f"[Process-Control]: URI detected as {uri}")
 
