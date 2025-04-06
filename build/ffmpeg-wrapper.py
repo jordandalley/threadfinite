@@ -134,26 +134,26 @@ def construct_ffmpeg(urls, user_agent, proxy):
     """Construct the FFmpeg process based on the retrieved URLs."""
     input_args_global = {
         'hide_banner': None,
+        'analyzeduration': '3000000',
+        'probesize': '10M',
         'fflags': '+discardcorrupt+genpts',
-        'analyzeduration': '1000000',
-        'probesize': '1000000',
     }
 
     input_args_url = {
         'user_agent': user_agent,
-        'thread_queue_size': '10000'
+        'thread_queue_size': '1000'
     }
     if proxy:
-        input_args_url['http_proxy'] = proxy  # Add the proxy argument if provided
+        input_args_url['http_proxy'] = proxy # Add the proxy argument if provided
 
     output_args = {
-        'loglevel': FFMPEG_LOG_LEVEL,  # Set ffmpeg log level
-        'c:v': 'copy',  # Copy the video stream without re-encoding
-        'c:a': 'copy',  # Copy the audio stream without re-encoding
+        'loglevel': FFMPEG_LOG_LEVEL, # Set ffmpeg log level
+        'c:v': 'copy', # Copy the video stream without re-encoding
+        'c:a': 'copy', # Copy the audio stream without re-encoding
         'dn': None, # Don't copy data streams
-        'movflags': '+faststart',  # Useful for streaming (moves the moov atom to the beginning of the file)
-        'fflags': '+genpts',  # Generate PTS (presentation timestamps)
-        'format': 'mpegts',  # Set output format to MPEG-TS
+        'movflags': '+faststart', # Useful for streaming (moves the moov atom to the beginning of the file)
+        'fflags': '+genpts', # Generate PTS (presentation timestamps)
+        'format': 'mpegts', # Set output format to MPEG-TS
     }
     ffmpeg_input = []
     ffmpeg_input.append(ffmpeg.input(urls[0], **input_args_global, **input_args_url))
