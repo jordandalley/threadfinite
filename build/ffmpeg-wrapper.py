@@ -219,10 +219,12 @@ def ffmpeg_run(ffmpeg_command):
         logging.error(e)
 
 def process_control():
-    # check if authentication is enabled on the web interface
+    # first get configuration variables from threadfin settings.json
     config_dir = os.getenv('THREADFIN_CONF', '/home/threadfin/conf')
     settings_file = os.path.join(config_dir, 'settings.json')
     auth_enabled = None
+    ipaddr = None
+    port = None
 
     try:
         with open(settings_file, 'r') as file:  # Fixed variable 'file_path' to 'settings_file'
@@ -230,7 +232,10 @@ def process_control():
             data = json.load(file)
 
             # Access the value of "authentication.web"
-            auth_enabled = data.get("authentication.web", None)
+            authentication_web = data.get("authentication.web", None)
+            forceHttps = data.get("forceHttps", None)
+            bindIpAddress = data.get("bindIpAddress", "127.0.0.1")
+            port = data.get("port", "34400")
 
     except FileNotFoundError:
         logging.error(f"[Process-Control] Can't check Threadfin settings, file path {settings_file} doesn't exist.")
@@ -242,20 +247,22 @@ def process_control():
         logging.error(f"[Process-Control] An error occurred while checking Threadfin settings file: {e}")
         return
 
-    if auth_enabled is True:
+    if authentication_web is True:
         logging.error("[Process-Control]: Web authentication is enabled. This is not supported with process-control.")
         return
-    if auth_enabled is None:
+    if authentication_web is None:
         logging.error("[Process-Control]: Unable to determine if web authentication is enabled. Disabling process-control.")
         return
+    if forceHttps is True:
+        logging.error("[Process-Control]: Force https is enabled. This is not supported with process-control.")
+        return
+    if forceHttps is None:
+        logging.error("[Process-Control]: Unable to determine if force https is enabled. Disabling process-control.")
+        return
 
-    # get bind IP and port from env vars
-    ipaddr = os.getenv('THREADFIN_BIND_IP_ADDRESS', '127.0.0.1')
-    port = os.getenv('THREADFIN_PORT', '34400')
-
-    if ipaddr == "0.0.0.0":
-        ipaddr = "127.0.0.1"
-    uri = f"ws://{ipaddr}:{port}/data/?Token=undefined"
+    if bindIpAddress == "0.0.0.0":
+        bindIpAddress = "127.0.0.1"
+    uri = f"ws://{bindIpAddress}:{port}/data/?Token=undefined"
     logging.debug(f"[Process-Control]: URI detected as {uri}")
 
     active_clients = 0
