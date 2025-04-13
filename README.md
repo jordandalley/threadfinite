@@ -54,8 +54,11 @@ docker compose up -d
 
   - Buffer Size: Start at 0.5MB and work your way up if you have buffering problems
   - Timeout for new client connections: Set this to '500'
-  - User Agent: I set mine to a common browser UA, such as ```Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36```
+  - User Agent: Set it to a common UA, such as:
+     - Chrome UA: ```Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36```
+     - Google DAI, SSAI or SCTE-35 stream issues, try this or something random: ```QuickTime\xaa.7.0.4 (qtver=7.0.4;cpu=PPC;os=Mac 10.3.9)```
   - FFmpeg Binary Path: Set this to "/usr/bin/ffmpeg" if it isn't already set this way
+
 
 ## Script options
 
