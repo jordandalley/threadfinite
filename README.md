@@ -4,15 +4,16 @@ An optimisation of the official [Threadfin](https://github.com/Threadfin/Threadf
 ## Features
 
 - Optimised highest-quality stream selection
+- Enables Threadfin support for using livestream services such as Youtube as channels
 - Checks periodically for active client counts within threadfin and exits stuck ffmpeg processes
-- Support for running custom ffmpeg static binaries (eg. less buggy versions)
+- Support for running custom ffmpeg static binaries (eg. less regressed versions) by including nscd in the build.
 - Adds better docker process handling with 'supervisord'
 
 ## Optimisation Wrapper for FFmpeg
 
-When using proxy mode in threadfin with ffmpeg, it ignores individual stream quality information in the m3u8 manifest and probes all streams to determine which is the highest resolution and quality. This is time consuming and not optimal when the m3u8 manifest contains all the relevant information necessary to determine the best stream.
+Normally, when using proxy mode in threadfin with ffmpeg, ffmpeg ignores individual stream quality information in the m3u8 manifest and probes all streams to determine which is the highest resolution and quality. This is time consuming and not optimal when the m3u8 manifest contains all the relevant information necessary to determine the best quality stream(s).
 
-This python script uses the 'yt-dlp' python library to parse the m3u8 manifest for the highest quality stream (or streams if audio and video separate), then feeds the highest quality stream(s) directly into python-ffmpeg.
+This python script uses the 'yt-dlp' python library to parse the m3u8 manifest for the highest quality stream (or streams if audio and video separate), then feeds the highest quality stream(s) directly into python-ffmpeg. This process is also useful for creating custom m3u8 files with livestreams from sources such as Youtube that you may wish to use as a TV channel.
 
 If you wish to bypass the optimisation script, and pass the streams directly to ffmpeg like normal, you can simply login to Threadfin and change the ffmpeg binary path from '/usr/bin/ffmpeg' to '/usr/bin/ffmpeg-bin'.
 
@@ -76,3 +77,19 @@ There shouldn't normally be any reason to change these defaults, unless running 
 | FFWR_FFMPEG_LOG_LEVEL | string | Specifies the verbosity of ffmpeg logging, if logging is enabled: Valid options: 'quiet', 'panic', 'fatal', 'error', 'warning', 'debug', 'trace' | verbose |
 | FFWR_PROCESS_CONTROL | boolean | Specifies whether to check run process control, which checks for inactive ffmpeg processes and ensures all processes exit when threadfin active clients is 0 | True |
 | FFWR_PROCESS_CONTROL_INTERVAL | integer | Specifies the interval, in seconds in which to run process control | 60 |
+
+## Youtube example
+
+If you'd like to use a Youtube livestream as a TV channel, here is an example that may work for you.
+
+In this example, I have created a custom m3u8 file for the International Space Station (ISS) livestream.
+
+```iss-channel.m3u8
+
+#EXTM3U
+#EXTINF:-1 group-title="Miscellaneous" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/NASA_logo.svg/918px-NASA_logo.svg.png", ISS Livestream
+https://www.youtube.com/watch?v=H999s0P1Er0
+```
+
+Simply then add this m3u8 file into your config directory, then add it like you would any other source.
+
