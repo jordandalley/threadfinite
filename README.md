@@ -84,8 +84,7 @@ If you'd like to use a Youtube livestream as a TV channel, here is an example th
 
 In this example, I have created a custom m3u8 file for the International Space Station (ISS) livestream.
 
-```iss-channel.m3u8
-
+```
 #EXTM3U
 #EXTINF:-1 group-title="Miscellaneous" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/NASA_logo.svg/918px-NASA_logo.svg.png", ISS Livestream
 https://www.youtube.com/watch?v=H999s0P1Er0
