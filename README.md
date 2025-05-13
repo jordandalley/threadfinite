@@ -34,6 +34,34 @@ Logs for the wrapper script are stored in config/log and retained for 1 day by d
   - Add: psutil
   - Add: websocket-client
 
+## Sample Docker-Compose
+
+Below is a sample docker-compose.yaml file to get you started.
+
+```
+services:
+  threadfin:
+    build: .
+    container_name: threadfin
+    ports:
+      - 34400:34400
+    environment:
+      #- PUID=1000
+      #- PGID=1000
+      - TZ=Pacific/Auckland
+      - FFWR_FFMPEG_PATH=/usr/bin/ffmpeg-bin
+      - FFWR_LOGGING_ENABLED=True
+      - FFWR_LOG_LEVEL=INFO
+      - FFWR_LOG_RETENTION_DAYS=1
+      - FFWR_LOG_DIR=/home/threadfin/conf/log
+      - FFWR_FFMPEG_LOG_LEVEL=warning
+      - FFWR_PROCESS_CONTROL=True
+      - FFWR_PROCESS_CONTROL_INTERVAL=60
+    volumes:
+      - /docker/threadfin/config:/home/threadfin/conf
+    restart: unless-stopped
+```
+
 ## Installation
 
 1. Download this repository: ```git clone https://github.com/jordandalley/threadfinite.git```
