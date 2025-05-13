@@ -71,10 +71,9 @@ services:
 wget 'https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz'
 tar -xvf ffmpeg-4.4.1-amd64-static.tar.xz -C build/ --strip-components=1 --wildcards '*/ffmpeg'
 ```
-4. Edit the docker-compose.yaml file, to map your volumes to the correct paths for config and tmp directories
+4. Edit the docker-compose.yaml file (sample provided above), to map your volumes to the correct paths for config and tmp directories
 5. Build and run the container:
 ```
-docker compose build
 docker compose up -d
 ```
 6. Update your Threadfin settings
