@@ -134,13 +134,17 @@ def get_highest_quality_stream(input_url, user_agent, proxy):
 def construct_ffmpeg(urls, user_agent, proxy):
     """Construct the FFmpeg process based on the retrieved URLs."""
     input_args_global = {
-        'hide_banner': None # hide the ffmpeg banner on startup
+        'hide_banner': None, # hide the ffmpeg banner on startup
     }
 
     # removed fflags +genpts and +discardcorrupt as it was causing issues with mediaflow-proxy streams, and +nobuffer for ABC streams
     input_args_url = {
         'user_agent': user_agent, # set user agent against all inputs
         're': None, # set readrate to realtime
+        'reconnect': '1',
+        'reconnect_streamed': '1',
+        'reconnect_on_network_error': '1',
+        'reconnect_delay_max': '10'
     }
     if proxy:
         input_args_url['http_proxy'] = proxy # Add the proxy argument if provided
