@@ -69,7 +69,7 @@ services:
 4. Extract the ffmpeg binary into the 'build' directory. Eg. for the latest FFmpeg release:
 ```bash
 wget 'https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz'
-tar -xvf ffmpeg-4.4.1-amd64-static.tar.xz -C build/ --strip-components=1 --wildcards '*/ffmpeg'
+tar -xvf ffmpeg-release-amd64-static.tar.xz -C build/ --strip-components=1 --wildcards '*/ffmpeg'
 ```
 4. Edit the docker-compose.yaml file (sample provided above), to map your volumes to the correct paths for config and tmp directories
 5. Build and run the container:
