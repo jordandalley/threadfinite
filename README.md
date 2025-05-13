@@ -65,7 +65,7 @@ services:
 ## Installation
 
 1. Download this repository: ```git clone https://github.com/jordandalley/threadfinite.git```
-3. Download an ffmpeg binary of your choice from [https://www.johnvansickle.com/ffmpeg/old-releases/](https://www.johnvansickle.com/ffmpeg/old-releases/)
+3. Download an ffmpeg binary of your choice from [https://www.johnvansickle.com/ffmpeg/](https://www.johnvansickle.com/ffmpeg/)
 4. Extract the ffmpeg binary into the 'build' directory. Eg. for the latest FFmpeg release:
 ```bash
 wget 'https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz'
