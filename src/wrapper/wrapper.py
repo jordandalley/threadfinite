@@ -10,18 +10,14 @@ import signal
 import yt_dlp
 import ffmpeg
 import time
-import json
-import psutil
 import threading
-import websocket
-import socket
 from datetime import datetime, timedelta
 
 #####################################################################
 ############## Set these in docker-compose as ENV vars ##############
 #####################################################################
-# FFmpeg path (Default: '/usr/bin/ffmpeg-bin')
-FFMPEG_PATH = os.getenv('FFWR_FFMPEG_PATH','/usr/bin/ffmpeg-bin')
+# FFmpeg path (Default: '/usr/lib/jellyfin-ffmpeg/ffmpeg')
+FFMPEG_PATH = os.getenv('FFWR_FFMPEG_PATH','/usr/lib/jellyfin-ffmpeg/ffmpeg')
 # Specifies whether to enable logging (Default: True)
 LOGGING_ENABLED = str(os.getenv('FFWR_LOGGING_ENABLED', 'True')).lower() not in ('false', '0', 'no')
 # Sets the log level for the script. Valid values: 'NOTSET', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL' (Default: "INFO")
@@ -32,10 +28,6 @@ LOG_RETENTION_DAYS = int(os.getenv('FFWR_LOG_RETENTION_DAYS', '1') or 1)
 LOG_DIR = os.getenv('FFWR_LOG_DIR','/home/threadfin/conf/log')
 # Specify the logging verbosity of ffmpeg. Valid values: 'quiet', 'panic', 'fatal', 'error', 'warning', 'info', 'verbose', 'debug', 'trace' (Default: "warning")
 FFMPEG_LOG_LEVEL = os.getenv('FFWR_FFMPEG_LOG_LEVEL', 'warning').lower() if os.getenv('LOG_LEVEL', 'warning').lower() in {'quiet', 'panic', 'fatal', 'error', 'warning', 'info', 'verbose', 'debug', 'trace'} else 'warning'
-# Specify whether ffmpeg-wrapper should enable process control for ffmpeg (Default: True)
-PROCESS_CONTROL = str(os.getenv('FFWR_PROCESS_CONTROL', 'True')).lower() not in ('false', '0', 'no')
-# Specifies the interval in seconds at which process control should check the ffmpeg process for activity (Default: 60)
-PROCESS_CONTROL_INTERVAL = int(os.getenv('FFWR_PROCESS_CONTROL_INTERVAL', '60') or 60)
 
 def graceful_exit(signal_num, frame):
     """Handler function to handle termination signals and other calls gracefully."""
@@ -133,28 +125,27 @@ def get_highest_quality_stream(input_url, user_agent, proxy):
 
 def construct_ffmpeg(urls, user_agent, proxy):
     """Construct the FFmpeg process based on the retrieved URLs."""
+    # These are global input arguments that only need to be defined once. Eg. hide_banner, loglevel, threads, max_alloc, protocol_whitelist, protocol_blacklist, probesize, analyzeduration, fpsprobesize etc.
     input_args_global = {
         'hide_banner': None, # hide the ffmpeg banner on startup
+        'loglevel': FFMPEG_LOG_LEVEL, # Set ffmpeg log level
     }
 
     # removed fflags +genpts and +discardcorrupt as it was causing issues with mediaflow-proxy streams, and +nobuffer for ABC streams
     input_args_url = {
         'user_agent': user_agent, # set user agent against all inputs
         're': None, # set readrate to realtime
-        'reconnect': '1',
-        'reconnect_streamed': '1',
-        'reconnect_on_network_error': '1',
-        'reconnect_delay_max': '10'
+        'readrate_initial_burst': '10',
+        'copyts': None,
     }
     if proxy:
         input_args_url['http_proxy'] = proxy # Add the proxy argument if provided
 
     output_args = {
-        'loglevel': FFMPEG_LOG_LEVEL, # Set ffmpeg log level
         'c:v': 'copy', # Copy the video stream without re-encoding
         'c:a': 'copy', # Copy the audio stream without re-encoding
-        'dn': None, # Don't copy data streams
-        'copyts': None, # Copy timestamps
+        'dn': None,
+        'mpegts_copyts': '1',
         'format': 'mpegts', # Set output format to MPEG-TS
     }
     ffmpeg_input = []
@@ -203,13 +194,6 @@ def ffmpeg_run(ffmpeg_command):
         # Log the PID of the FFmpeg process
         logging.info(f"FFmpeg process started with PID: {ffmpeg_pid}")
 
-        if PROCESS_CONTROL:
-            logging.info("Starting Process Control thread")
-            # Run the check_ffmpeg_activity function in a separate thread
-            monitoring_thread = threading.Thread(target=process_control)
-            monitoring_thread.daemon = True
-            monitoring_thread.start()
-
         ffmpeg_process.wait()  # Wait for FFmpeg to finish
         logging.info("FFmpeg process has completed.")
 
@@ -219,121 +203,6 @@ def ffmpeg_run(ffmpeg_command):
             for line in e.stderr.decode(errors="ignore").splitlines():
                 logging.error(line)
         logging.error(e)
-
-def process_control():
-    # first get configuration variables from threadfin settings.json
-    config_dir = os.getenv('THREADFIN_CONF', '/home/threadfin/conf')
-    settings_file = os.path.join(config_dir, 'settings.json')
-    auth_enabled = None
-    ipaddr = None
-    port = None
-
-    try:
-        with open(settings_file, 'r') as file:  # Fixed variable 'file_path' to 'settings_file'
-            # Load the JSON data
-            data = json.load(file)
-
-            # Access the value of "authentication.web"
-            authentication_web = data.get("authentication.web", None)
-            forceHttps = data.get("forceHttps", None)
-            bindIpAddress = data.get("bindIpAddress", "127.0.0.1")
-            port = data.get("port", "34400")
-
-    except FileNotFoundError:
-        logging.error(f"[Process-Control] Can't check Threadfin settings, file path {settings_file} doesn't exist.")
-        return
-    except json.JSONDecodeError:
-        logging.error("[Process-Control] Error decoding JSON from Threadfin settings file.")
-        return
-    except Exception as e:
-        logging.error(f"[Process-Control] An error occurred while checking Threadfin settings file: {e}")
-        return
-
-    if authentication_web is True:
-        logging.error("[Process-Control]: Web authentication is enabled. This is not supported with process-control.")
-        return
-    if authentication_web is None:
-        logging.error("[Process-Control]: Unable to determine if web authentication is enabled. Disabling process-control.")
-        return
-    if forceHttps is True:
-        logging.error("[Process-Control]: Force https is enabled. This is not supported with process-control.")
-        return
-    if forceHttps is None:
-        logging.error("[Process-Control]: Unable to determine if force https is enabled. Disabling process-control.")
-        return
-    if bindIpAddress == "0.0.0.0" or bindIpAddress is None or bindIpAddress == "":
-        bindIpAddress = socket.gethostbyname(socket.gethostname())
-    uri = f"ws://{bindIpAddress}:{port}/data/?Token=undefined"
-    logging.debug(f"[Process-Control]: URI detected as {uri}")
-
-    active_clients = 0
-    try:
-        while True:
-            time.sleep(PROCESS_CONTROL_INTERVAL)
-            active_clients = get_active_clients(uri)
-
-            logging.debug(f"[Process-Control]: Active clients: {active_clients}")
-
-            if active_clients is None:
-                logging.error(f"[Process-Control]: Active clients check returned 'None'!")
-                continue  # Continue the loop if active_clients is None
-
-            if active_clients == 0:
-                logging.info(f"[Process-Control]: No active clients detected.")
-                graceful_exit(None, None)
-                return
-
-    except Exception as e:
-        logging.error(f"[Process-Control]: An error occurred while monitoring threadfin: {e}")
-        # Continue the loop to keep monitoring
-        time.sleep(PROCESS_CONTROL_INTERVAL)
-
-def get_active_clients(uri, timeout=5):
-    # turn off noisy websocket logging
-    logging.getLogger("websocket").setLevel(logging.CRITICAL)
-    message = '{"cmd":"updateLog"}'
-    received_data = None
-
-    def on_message(ws, message):
-        nonlocal received_data
-        try:
-            received_data = json.loads(message)
-        except json.JSONDecodeError as e:
-            logging.error(f"Failed to decode JSON: {e}")
-        finally:
-            ws.close()
-            return None
-
-    def on_open(ws):
-        ws.send(message)
-
-    ws = websocket.WebSocketApp(uri, on_message=on_message, on_open=on_open)
-
-    def run_ws():
-        ws.run_forever(ping_interval=4, ping_timeout=2)
-
-    websocket_thread = threading.Thread(target=run_ws)
-    websocket_thread.start()
-
-    start_time = time.time()
-
-    while websocket_thread.is_alive():
-        if time.time() - start_time > timeout:
-            logging.warning("WebSocket connection timed out.")
-            ws.close()
-            websocket_thread.join()
-            break
-        time.sleep(0.1)
-
-    if received_data:
-        try:
-            return received_data["clientInfo"]["activeClients"]
-        except KeyError:
-            logging.error("Received data is missing expected keys.")
-            return None
-    else:
-        logging.error("No data received from WebSocket.")
-        return None
 
 def main():
     # initialise vars
@@ -378,7 +247,6 @@ def main():
         logging.info(f"Log Retention: {LOG_RETENTION_DAYS} day(s)")
         logging.info(f"FFmpeg Log Level: {FFMPEG_LOG_LEVEL}")
         logging.info(f"Cleaning logs older than {LOG_RETENTION_DAYS} days")
-        logging.info(f"Process Control Enabled: {PROCESS_CONTROL}")
 
         # clean up old logs
         clean_old_logs()

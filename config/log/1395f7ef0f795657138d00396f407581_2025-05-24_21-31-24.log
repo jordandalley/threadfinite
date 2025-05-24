@@ -1,0 +1,21 @@
+2025-05-24 21:31:24.854 - INFO - Starting ffmpeg-wrapper for Threadfinite: https://github.com/jordandalley/threadfinite
+2025-05-24 21:31:24.854 - INFO - Script PID: 19
+2025-05-24 21:31:24.854 - INFO - Master URL: https://i.mjh.nz/.r/tvnz-1.m3u8
+2025-05-24 21:31:24.854 - INFO - User Agent: Threadfinite
+2025-05-24 21:31:24.854 - INFO - Log Retention: 1 day(s)
+2025-05-24 21:31:24.854 - INFO - FFmpeg Log Level: warning
+2025-05-24 21:31:24.854 - INFO - Cleaning logs older than 1 days
+2025-05-24 21:31:24.854 - INFO - Finding highest quality stream...
+2025-05-24 21:31:26.229 - INFO - Found the following url(s): ['https://dz1g25geip0uq.cloudfront.net/master_19.m3u8']
+2025-05-24 21:31:26.230 - INFO - FFmpeg Command: ffmpeg -copyts -hide_banner -loglevel warning -re -readrate_initial_burst 10 -user_agent Threadfinite -i https://dz1g25geip0uq.cloudfront.net/master_19.m3u8 -f mpegts -c:a copy -c:v copy -dn -mpegts_copyts 1 pipe:1
+2025-05-24 21:31:26.230 - INFO - Starting FFmpeg process...
+2025-05-24 21:31:26.231 - INFO - FFmpeg process started with PID: 20
+2025-05-24 21:31:26.371 - INFO - [ffmpeg]: mime type is not rfc8216 compliant
+2025-05-24 21:31:40.551 - INFO - [ffmpeg]: [vost#0:0/copy @ 0x5b1c0442ebc0] Error submitting a packet to the muxer: Broken pipe
+2025-05-24 21:31:40.551 - INFO - [ffmpeg]: Last message repeated 1 times
+2025-05-24 21:31:40.551 - INFO - [ffmpeg]: [out#0/mpegts @ 0x5b1c044090c0] Error muxing a packet
+2025-05-24 21:31:40.552 - INFO - [ffmpeg]: [out#0/mpegts @ 0x5b1c044090c0] Task finished with error code: -32 (Broken pipe)
+2025-05-24 21:31:40.552 - INFO - [ffmpeg]: [out#0/mpegts @ 0x5b1c044090c0] Terminating thread with return code -32 (Broken pipe)
+2025-05-24 21:31:40.563 - INFO - [ffmpeg]: [out#0/mpegts @ 0x5b1c044090c0] Error writing trailer: Broken pipe
+2025-05-24 21:31:40.563 - INFO - [ffmpeg]: [out#0/mpegts @ 0x5b1c044090c0] Error closing file: Broken pipe
+2025-05-24 21:31:40.573 - INFO - FFmpeg process has completed.
