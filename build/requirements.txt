@@ -1,4 +1,0 @@
-ffmpeg-python
-psutil
-yt-dlp
-websocket-client

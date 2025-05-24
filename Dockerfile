@@ -1,27 +1,113 @@
-# start with the official threadfin image
-FROM fyb3roptik/threadfin:latest
+# First stage. Building the threadfin binary
+# -----------------------------------------------------------------------------
+FROM golang:bookworm AS builder-go
 
-# remove the ffmpeg package bundled with threadfin, install nscd, supervisord and python3-pip
-RUN apt-get update && apt-get remove ffmpeg -y && apt-get install -y supervisor nscd python3-pip && rm -rf /var/lib/apt/lists/*
-# creare run dir required by nscd
-RUN mkdir -p /var/run/nscd
+ARG BUILD_DATE
+ARG VCS_REF
+ARG THREADFIN_PORT=34400
+ARG THREADFIN_VERSION
 
-# copy supervisord configuration file
-COPY build/supervisord.conf /etc/supervisor/supervisord.conf
-# copy the wrapper script to /usr/bin/ffmpeg in place of the original ffmpeg
-COPY build/ffmpeg-wrapper.py /usr/bin/ffmpeg
-# copy the actual ffmpeg binary to /usr/bin/ffmpeg-bin inside the container
-COPY build/ffmpeg /usr/bin/ffmpeg-bin
-# set the ffmpeg wrapper script as executable
-RUN chmod +x /usr/bin/ffmpeg
-# set the ffmpeg binary as executable
-RUN chmod +x /usr/bin/ffmpeg-bin
-# copy the python requirements.txt into the container
-COPY build/requirements.txt /tmp
-# install everything in the requirements.txt file
-RUN pip3 install -r /tmp/requirements.txt --break-system-packages
-# set python unbuffered mode
+WORKDIR /app
+
+# Copy go mod files first for better caching
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy the source code
+COPY threadfin.go ./
+COPY src src
+
+# Rebuild the html from source 1/2 (Uncomment below to recompile html sources into webUI.go)
+#COPY html html
+#COPY html-build-standalone.go ./
+#RUN go mod vendor && go run html-build-standalone.go
+
+# Build the application with optimizations
+RUN CGO_ENABLED=0 go build -mod=mod -ldflags="-s -w" -trimpath -o threadfin threadfin.go
+
+# Second state. Building the wrapper binary
+# -----------------------------------------------------------------------------
+FROM python:bookworm AS builder-py
+
 ENV PYTHONUNBUFFERED=1
 
-# start supervisord
-ENTRYPOINT ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
+WORKDIR /app
+
+COPY src/wrapper/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY src/wrapper/wrapper.py .
+
+RUN pyinstaller --name wrapper --onefile wrapper.py
+
+# Last stage. Creating a minimal image
+# -----------------------------------------------------------------------------
+
+FROM debian:bookworm-slim AS standard
+
+LABEL org.label-schema.build-date="${BUILD_DATE}" \
+      org.label-schema.name="Threadfin" \
+      org.label-schema.description="Dockerised Threadfin" \
+      org.label-schema.url="" \
+      org.label-schema.vcs-ref="${VCS_REF}" \
+      org.label-schema.vcs-url="https://github.com/jordandalley/Threadfin" \
+      org.label-schema.vendor="Threadfin" \
+      org.label-schema.version="${THREADFIN_VERSION}" \
+      org.label-schema.schema-version="1.0" \
+      DISCORD_URL=""
+
+ENV THREADFIN_BIN=/home/threadfin/bin \
+    THREADFIN_CONF=/home/threadfin/conf \
+    THREADFIN_HOME=/home/threadfin \
+    THREADFIN_TEMP=/tmp/threadfin \
+    THREADFIN_CACHE=/home/threadfin/cache \
+    THREADFIN_UID=31337 \
+    THREADFIN_GID=31337 \
+    THREADFIN_USER=threadfin \
+    THREADFIN_BRANCH=main \
+    THREADFIN_DEBUG=0 \
+    THREADFIN_PORT=34400 \
+    THREADFIN_LOG=/var/log/threadfin.log \
+    THREADFIN_BIND_IP_ADDRESS=0.0.0.0 \
+    PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/threadfin/bin \
+    DEBIAN_FRONTEND=noninteractive
+
+# Set working directory
+WORKDIR $THREADFIN_HOME
+
+# Arguments to add the jellyfin repository
+ARG TARGETARCH
+ARG OS_VERSION=debian
+ARG OS_CODENAME=bookworm
+
+# Rebuild the html from source 2/2 (Uncomment below to COPY the recompiled html sources of webUI.go to the /home/threadfin/dev directory 
+# COPY --from=builder-go /app/src/webUI.go $THREADFIN_HOME/dev/
+
+# Copy threadfin binary out of builder-go container into standard
+COPY --from=builder-go /app/threadfin $THREADFIN_BIN/
+# Copy wrapper binary out of builder-py container into standard
+COPY --from=builder-py /app/dist/wrapper $THREADFIN_BIN/
+
+# Install base level packages, then install jellyfin repo before installing jellyfin-ffmpeg, cleaning up and settings binaries as executable
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates curl tzdata gnupg apt-transport-https && \
+    curl -fsSL https://repo.jellyfin.org/jellyfin_team.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/debian-jellyfin.gpg && \
+    echo "deb [arch=${TARGETARCH}] https://repo.jellyfin.org/master/${OS_VERSION} ${OS_CODENAME} main" > /etc/apt/sources.list.d/jellyfin.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends --no-install-suggests jellyfin-ffmpeg7 && \
+    apt-get remove gnupg apt-transport-https --yes && \
+    apt-get clean autoclean --yes && \
+    apt-get autoremove --yes && \
+    rm -rf /var/cache/apt/archives* /var/lib/apt/lists/* && \
+    mkdir -p $THREADFIN_BIN $THREADFIN_CONF $THREADFIN_TEMP $THREADFIN_HOME/cache && \
+    chmod a+rwX $THREADFIN_CONF $THREADFIN_TEMP && \
+    chmod +rx $THREADFIN_BIN/threadfin && \
+    chmod +rx $THREADFIN_BIN/wrapper
+
+# Configure container volume mappings
+VOLUME $THREADFIN_CONF
+VOLUME $THREADFIN_TEMP
+EXPOSE $THREADFIN_PORT
+
+# start threadfin
+ENTRYPOINT ["sh", "-c", "${THREADFIN_BIN}/threadfin -port=${THREADFIN_PORT} -bind=${THREADFIN_BIND_IP_ADDRESS} -config=${THREADFIN_CONF} -debug=${THREADFIN_DEBUG}"]
