@@ -77,4 +77,3 @@ https://www.youtube.com/watch?v=H999s0P1Er0
 ```
 
 Simply then add this m3u8 file into your config directory, then add it like you would any other source.
-
