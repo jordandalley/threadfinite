@@ -38,7 +38,7 @@ import (
 */
 
 // Name : Programmname
-const Name = "Threadfinite"
+const Name = "Threadfin"
 
 // Version : Version, die Build Nummer wird in der main func geparst.
 const Version = "1.2.32"
