@@ -63,6 +63,7 @@ There shouldn't normally be any reason to change these defaults, unless running 
 | FFWR_LOG_RETENTION_DAYS | integer | Specifies the maximum amount of days that log files should be retained for | 1 |
 | FFWR_LOG_DIR | string | Specifies the path in which to store the log files | /home/threadfin/conf/log |
 | FFWR_FFMPEG_LOG_LEVEL | string | Specifies the verbosity of ffmpeg logging, if logging is enabled: Valid options: 'quiet', 'panic', 'fatal', 'error', 'warning', 'debug', 'trace' | verbose |
+| FFWR_FFMPEG_INIT_BURST | integer | Specifies the initial burst, in seconds, at which new streams should be read before returning to 1x read rate | 30 |
 
 ## Youtube example
 

@@ -23,11 +23,14 @@ LOGGING_ENABLED = str(os.getenv('FFWR_LOGGING_ENABLED', 'True')).lower() not in 
 # Sets the log level for the script. Valid values: 'NOTSET', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL' (Default: "INFO")
 LOG_LEVEL = os.getenv('FFWR_LOG_LEVEL', 'INFO').upper() if os.getenv('LOG_LEVEL', 'INFO').upper() in {'NOTSET', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'} else 'INFO'
 # Amount of days that logs should be retained for (Default: 1)
-LOG_RETENTION_DAYS = int(os.getenv('FFWR_LOG_RETENTION_DAYS', '1') or 1)
+LOG_RETENTION_DAYS = int(os.getenv('FFWR_LOG_RETENTION_DAYS', '1'))
 # Specifies the logging path. This is usually mapped to the host in Docker under the config directory. (Default: "/home/threadfin/conf/log")
 LOG_DIR = os.getenv('FFWR_LOG_DIR','/home/threadfin/conf/log')
 # Specify the logging verbosity of ffmpeg. Valid values: 'quiet', 'panic', 'fatal', 'error', 'warning', 'info', 'verbose', 'debug', 'trace' (Default: "warning")
 FFMPEG_LOG_LEVEL = os.getenv('FFWR_FFMPEG_LOG_LEVEL', 'warning').lower() if os.getenv('LOG_LEVEL', 'warning').lower() in {'quiet', 'panic', 'fatal', 'error', 'warning', 'info', 'verbose', 'debug', 'trace'} else 'warning'
+# FFmpeg initial burst in seconds before returning to 1x readrate (Default: 30)
+FFMPEG_INIT_BURST = int(os.getenv('FFWR_FFMPEG_INIT_BURST', '30'))
+
 
 def graceful_exit(signal_num, frame):
     """Handler function to handle termination signals and other calls gracefully."""
@@ -131,12 +134,12 @@ def construct_ffmpeg(urls, user_agent, proxy):
         'loglevel': FFMPEG_LOG_LEVEL, # Set ffmpeg log level
     }
 
-    # removed fflags +genpts and +discardcorrupt as it was causing issues with mediaflow-proxy streams, and +nobuffer for ABC streams
+    # these input flags are replicated for each input stream
     input_args_url = {
         'user_agent': user_agent, # set user agent against all inputs
         're': None, # set readrate to realtime
-        'readrate_initial_burst': '10',
-        'copyts': None,
+        'readrate_initial_burst': FFMPEG_INIT_BURST, # set the initial burst rate in seconds
+        'copyts': None, # copy timestamps from each input
     }
     if proxy:
         input_args_url['http_proxy'] = proxy # Add the proxy argument if provided
@@ -144,9 +147,9 @@ def construct_ffmpeg(urls, user_agent, proxy):
     output_args = {
         'c:v': 'copy', # Copy the video stream without re-encoding
         'c:a': 'copy', # Copy the audio stream without re-encoding
-        'dn': None,
-        'mpegts_copyts': '1',
-        'format': 'mpegts', # Set output format to MPEG-TS
+        'dn': None, # Don't copy data streams
+        'mpegts_copyts': '1', # Copy timestamps from inputs into mpegts output
+        'format': 'mpegts', # Set output format to mpeg-ts
     }
     ffmpeg_input = []
     ffmpeg_input.append(ffmpeg.input(urls[0], **input_args_global, **input_args_url))
