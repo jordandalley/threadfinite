@@ -2,7 +2,7 @@ package src
 
 import "threadfin/src/internal/imgcache"
 
-// SystemStruct : Beinhaltet alle Systeminformationen
+// SystemStruct: Contains all system information
 type SystemStruct struct {
 	Addresses struct {
 		DVR string
@@ -29,11 +29,6 @@ type SystemStruct struct {
 		DefaultOptions string
 		Path           string
 	}
-
-	/*VLC struct {
-		DefaultOptions string
-		Path           string
-	}*/
 
 	File struct {
 		Authentication string
@@ -111,18 +106,7 @@ type SystemStruct struct {
 	}
 }
 
-// GitStruct : Updateinformationen von GitHub
-type GitStruct struct {
-	Filename string `json:"filename"`
-	Version  string `json:"version"`
-}
-
-type GithubReleaseInfo struct {
-	TagName    string `json:"tag_name"`
-	Prerelease bool   `json:"prerelease"`
-}
-
-// DataStruct : Alle Daten werden hier abgelegt. (Lineup, XMLTV)
+// DataStruct: All data is stored here (Lineup, XMLTV)
 type DataStruct struct {
 	Cache struct {
 		Images      *imgcache.Cache
@@ -173,7 +157,7 @@ type DataStruct struct {
 	}
 }
 
-// Filter : Wird für die Filterregeln verwendet
+// Filter: Used for filter rules
 type Filter struct {
 	CaseSensitive bool
 	LiveEvent     bool
@@ -181,7 +165,7 @@ type Filter struct {
 	Type          string
 }
 
-// XEPGChannelStruct : XEPG Struktur
+// XEPGChannelStruct : XEPG Structure
 type XEPGChannelStruct struct {
 	FileM3UID          string        `json:"_file.m3u.id"`
 	FileM3UName        string        `json:"_file.m3u.name"`
@@ -220,7 +204,7 @@ type XEPGChannelStruct struct {
 	ChannelUniqueID    string        `json:"channelUniqueID"`
 }
 
-// M3UChannelStructXEPG : M3U Struktur für XEPG
+// M3UChannelStructXEPG : M3U Structure for XEPG
 type M3UChannelStructXEPG struct {
 	FileM3UID       string `json:"_file.m3u.id,required"`
 	FileM3UName     string `json:"_file.m3u.name,required"`
@@ -239,7 +223,7 @@ type M3UChannelStructXEPG struct {
 	ChannelUniqueID string `json:"channelUniqueID"`
 }
 
-// FilterStruct : Filter Struktur
+// FilterStruct : Filter Structure
 type FilterStruct struct {
 	Active         bool   `json:"active"`
 	LiveEvent      bool   `json:"liveEvent"`
@@ -255,12 +239,12 @@ type FilterStruct struct {
 	Category       string `json:"x-category"`
 }
 
-// StreamingURLS : Informationen zu allen streaming URL's
+// StreamingURLS: Information about all streaming URLs
 type StreamingURLS struct {
 	Streams map[string]StreamInfo `json:"channels,required"`
 }
 
-// StreamInfo : Informationen zum Kanal für die streaming URL
+// StreamInfo: Information about the channel for the streaming URL
 type StreamInfo struct {
 	ChannelNumber  string        `json:"channelNumber,required"`
 	Name           string        `json:"name,required"`
@@ -272,7 +256,7 @@ type StreamInfo struct {
 	URLid          string        `json:"urlID,required"`
 }
 
-// Notification : Notifikationen im Webinterface
+// Notification: Notifications in the web interface
 type Notification struct {
 	Headline string `json:"headline,required"`
 	Message  string `json:"message,required"`
@@ -281,7 +265,7 @@ type Notification struct {
 	Type     string `json:"type,required"`
 }
 
-// SettingsStruct : Inhalt der settings.json
+// SettingsStruct: Contents of the settings.json file
 type SettingsStruct struct {
 	API               bool     `json:"api"`
 	AuthenticationAPI bool     `json:"authentication.api"`
@@ -299,11 +283,8 @@ type SettingsStruct struct {
 	EpgSource         string   `json:"epgSource"`
 	FFmpegOptions     string   `json:"ffmpeg.options"`
 	FFmpegPath        string   `json:"ffmpeg.path"`
-	//FFmpegForceHttp   bool     `json:"ffmpeg.forceHttp"`
-	//VLCOptions        string   `json:"vlc.options"`
-	//VLCPath           string   `json:"vlc.path"`
-	FileM3U           []string `json:"file,omitempty"`  // Beim Wizard wird die M3U in ein Slice gespeichert
-	FileXMLTV         []string `json:"xmltv,omitempty"` // Altes Speichersystem der Provider XML Datei Slice (Wird für die Umwandlung auf das neue benötigt)
+	FileM3U           []string `json:"file,omitempty"`  // During the wizard, the M3U is stored in a slice
+	FileXMLTV         []string `json:"xmltv,omitempty"` // Old storage system of the provider XML file slice (needed for conversion to the new one)
 
 	Files struct {
 		HDHR  map[string]interface{} `json:"hdhr"`
@@ -345,7 +326,7 @@ type SettingsStruct struct {
 	IgnoreFilters             bool                  `json:"ignoreFilters"`
 }
 
-// LanguageUI : Sprache für das WebUI
+// LanguageUI: Language for the WebUI
 type LanguageUI struct {
 	Login struct {
 		Failed string

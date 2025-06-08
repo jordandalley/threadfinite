@@ -30,7 +30,6 @@ func ThreadfinAutoBackup() (err error) {
 		return
 	}
 
-	// Alte Backups löschen
 	files, err := os.ReadDir(System.Folder.Backup)
 
 	if err == nil {
@@ -43,7 +42,6 @@ func ThreadfinAutoBackup() (err error) {
 
 		}
 
-		// Alle Backups löschen
 		var end int
 		switch Settings.BackupKeep {
 		case 0:
@@ -70,7 +68,6 @@ func ThreadfinAutoBackup() (err error) {
 
 	}
 
-	// Backup erstellen
 	if err == nil {
 
 		target = System.Folder.Backup + archiv
@@ -135,13 +132,11 @@ func ThreadfinRestore(archive string) (newWebURL string, err error) {
 		return
 	}
 
-	// Zip Archiv in tmp entpacken
 	err = extractZIP(archive, tmpRestore)
 	if err != nil {
 		return
 	}
 
-	// Neue Config laden um den Port und die Version zu überprüfen
 	newConfig, err := loadJSONFileToMap(tmpRestore + "settings.json")
 	if err != nil {
 		ShowError(err, 0)
@@ -154,13 +149,11 @@ func ThreadfinRestore(archive string) (newWebURL string, err error) {
 		return
 	}
 
-	// Zip Archiv in den Config Ordner entpacken
 	err = extractZIP(archive, System.Folder.Config)
 	if err != nil {
 		return
 	}
 
-	// Neue Config laden um den Port und die Version zu überprüfen
 	newConfig, err = loadJSONFileToMap(System.Folder.Config + "settings.json")
 	if err != nil {
 		ShowError(err, 0)
@@ -203,10 +196,9 @@ func ThreadfinRestore(archive string) (newWebURL string, err error) {
 
 func ThreadfinRestoreFromWeb(input string) (newWebURL string, err error) {
 
-	// Base64 Json String in base64 umwandeln
+	// Base64 Json String in base64
 	b64data := input[strings.IndexByte(input, ',')+1:]
 
-	// Base64 in bytes umwandeln und speichern
 	sDec, err := b64.StdEncoding.DecodeString(b64data)
 
 	if err != nil {
@@ -225,7 +217,6 @@ func ThreadfinRestoreFromWeb(input string) (newWebURL string, err error) {
 	return
 }
 
-// ThreadfinRestoreFromCLI : Wiederherstellung über die Kommandozeile
 func ThreadfinRestoreFromCLI(archive string) (err error) {
 
 	var confirm string

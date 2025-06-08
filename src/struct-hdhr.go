@@ -53,7 +53,7 @@ type Lineup []interface {
 	//URL         string `json:"URL"`
 }
 
-// LineupStream : HDHR einzelner Stream im Lineup
+// LineupStream: HDHR individual stream in the lineup
 type LineupStream struct {
 	GuideName   string `json:"GuideName"`
 	GuideNumber string `json:"GuideNumber"`

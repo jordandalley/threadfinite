@@ -12,28 +12,28 @@ import (
 	"golang.org/x/text/language"
 )
 
-// System : Beinhaltet alle Systeminformationen
+// System : Contains all system information
 var System SystemStruct
 
-// WebScreenLog : Logs werden im RAM gespeichert und für das Webinterface bereitgestellt
+// WebScreenLog : Logs are stored in RAM and made available for the web interface
 var WebScreenLog WebScreenLogStruct
 
-// Settings : Inhalt der settings.json
+// Settings : Content of settings.json
 var Settings SettingsStruct
 
-// Data : Alle Daten werden hier abgelegt. (Lineup, XMLTV)
+// Data : All data is stored here (Lineup, XMLTV)
 var Data DataStruct
 
-// SystemFiles : Alle Systemdateien
+// SystemFiles : All system files
 var SystemFiles = []string{"authentication.json", "pms.json", "settings.json", "xepg.json", "urls.json"}
 
-// BufferInformation : Informationen über den Buffer (aktive Streams, maximale Streams)
+// BufferInformation : Information about the buffer (active streams, maximum streams)
 var BufferInformation sync.Map
 
-// bufferVFS : Filesystem to use for the Buffer
+// bufferVFS : Filesystem to use for the buffer
 var bufferVFS avfs.VFS
 
-// BufferClients : Anzahl der Clients die einen Stream über den Buffer abspielen
+// BufferClients : Number of clients playing a stream via the buffer
 var BufferClients sync.Map
 
 // Lock : Lock Map
@@ -46,13 +46,11 @@ var (
 	systemMutex sync.Mutex
 )
 
-// Init : Systeminitialisierung
+// Init : System initialisation
 func Init() (err error) {
 
 	var debug string
-
-	// System Einstellungen
-	// System.Dev = true
+        // System settings
 	System.AppName = strings.ToLower(System.Name)
 	System.ARCH = runtime.GOARCH
 	System.OS = runtime.GOOS
@@ -65,20 +63,20 @@ func Init() (err error) {
 	System.UnfilteredChannelLimit = 480
 	System.Compatibility = "0.1.0"
 
-	// FFmpeg Default Einstellungen
+        // FFmpeg default settings
 	System.FFmpeg.DefaultOptions = "-i [URL]"
-	//System.VLC.DefaultOptions = "-I dummy [URL] --sout #std{mux=ts,access=file,dst=-}"
 
-	// Default Logeinträge, wird später von denen aus der settings.json überschrieben. Muss gemacht werden, damit die ersten Einträge auch im Log (webUI aangezeigt werden)
+        // Default log entries, later overridden by those in settings.json.
+        // Needed so the first entries are displayed in the log (webUI).
 	Settings.LogEntriesRAM = 500
 
-	// Variablen für den Update Prozess
+	// Update Prozess
 	//System.Update.Git = "https://github.com/Threadfin/Threadfin/blob"
-	System.Update.Git = fmt.Sprintf("https://github.com/%s/%s", System.GitHub.User, System.GitHub.Repo)
-	System.Update.Github = fmt.Sprintf("https://api.github.com/repos/%s/%s", System.GitHub.User, System.GitHub.Repo)
-	System.Update.Name = "Threadfin"
+	//System.Update.Git = fmt.Sprintf("https://github.com/%s/%s", System.GitHub.User, System.GitHub.Repo)
+	//System.Update.Github = fmt.Sprintf("https://api.github.com/repos/%s/%s", System.GitHub.User, System.GitHub.Repo)
+	//System.Update.Name = "Threadfin"
 
-	// Ordnerpfade festlegen
+        // Define folder paths
 	var tempFolder = os.TempDir() + string(os.PathSeparator) + System.AppName + string(os.PathSeparator)
 	tempFolder = getPlatformPath(strings.Replace(tempFolder, "//", "/", -1))
 
@@ -98,9 +96,9 @@ func Init() (err error) {
 	System.Folder.Temp = tempFolder
 
 	// Dev Info
-	showDevInfo()
+	// showDevInfo()
 
-	// System Ordner erstellen
+        // Create system folders
 	err = createSystemFolders()
 	if err != nil {
 		ShowError(err, 1070)
@@ -108,7 +106,7 @@ func Init() (err error) {
 	}
 
 	if len(System.Flag.Restore) > 0 {
-		// Einstellungen werden über CLI wiederhergestellt. Weitere Initialisierung ist nicht notwendig.
+                // Settings are restored via CLI. Further initialization is not necessary.
 		return
 	}
 
@@ -127,16 +125,11 @@ func Init() (err error) {
 		ShowError(err, 1002)
 	}
 
-	// Menü für das Webinterface
+        // Menu for the web interface
 	System.WEB.Menu = []string{"playlist", "xmltv", "filter", "mapping", "users", "settings", "log", "logout"}
 
 	fmt.Println("For help run: " + getPlatformFile(os.Args[0]) + " -h")
 	fmt.Println()
-
-	// Überprüfen ob Threadfin als root läuft
-	/*if os.Geteuid() == 0 {
-		showWarning(2110)
-	}*/
 
 	if System.Flag.Debug > 0 {
 		debug = fmt.Sprintf("Debug Level:%d", System.Flag.Debug)
@@ -149,19 +142,14 @@ func Init() (err error) {
 	showInfo("Hostname:" + System.Hostname)
 	showInfo(fmt.Sprintf("System Folder:%s", getPlatformPath(System.Folder.Config)))
 
-	// Systemdateien erstellen (Falls nicht vorhanden)
+        // Create system files (if not present)
 	err = createSystemFiles()
 	if err != nil {
 		ShowError(err, 1071)
 		return
 	}
 
-	/*err = conditionalUpdateChanges()
-	if err != nil {
-		return
-	}*/
-
-	// Einstellungen laden (settings.json)
+        // Load settings (settings.json)
 	showInfo(fmt.Sprintf("Load Settings:%s", System.File.Settings))
 
 	_, err = loadSettings()
@@ -170,14 +158,12 @@ func Init() (err error) {
 		return
 	}
 
-	// Berechtigung aller Ordner überprüfen
+        // Check permissions of all folders
 	err = checkFilePermission(System.Folder.Config)
 	if err == nil {
 		err = checkFilePermission(System.Folder.Temp)
 	}
 
-	// Separaten tmp Ordner für jede Instanz
-	//System.Folder.Temp = System.Folder.Temp + Settings.UUID + string(os.PathSeparator)
 	showInfo(fmt.Sprintf("Temporary Folder:%s", getPlatformPath(System.Folder.Temp)))
 
 	err = checkFolder(System.Folder.Temp)
@@ -190,12 +176,12 @@ func Init() (err error) {
 		return
 	}
 
-	// Branch festlegen
+        // Set branch
 	System.Branch = cases.Title(language.English).String(Settings.Branch)
 
-	if System.Dev {
+	/*if System.Dev {
 		System.Branch = cases.Title(language.English).String("development")
-	}
+	}*/
 
 	if len(System.Branch) == 0 {
 		System.Branch = cases.Title(language.English).String("main")
@@ -214,16 +200,16 @@ func Init() (err error) {
 	System.URLBase = fmt.Sprintf("%s://%s:%s", System.ServerProtocol.WEB, System.IPAddress, Settings.Port)
 
 	// If System.Dev is true then use local files and generate go file
-	if System.Dev == true {
+	/*if System.Dev == true {
 		HTMLInit("webUI", "src", "html"+string(os.PathSeparator), "src"+string(os.PathSeparator)+"webUI.go")
 		err = BuildGoFile()
 		if err != nil {
 			return
 		}
 
-	}
+	}*/
 
-	// DLNA Server starten
+        // Start DLNA server
 	if Settings.SSDP {
 		err = SSDP()
 		if err != nil {
@@ -231,13 +217,13 @@ func Init() (err error) {
 		}
 	}
 
-	// HTML Datein laden
+        // Load HTML files
 	loadHTMLMap()
 
 	return
 }
 
-// StartSystem : System wird gestartet
+// StartSystem : Starts the system
 func StartSystem(updateProviderFiles bool) (err error) {
 
 	setDeviceID()

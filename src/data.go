@@ -15,7 +15,7 @@ import (
 	"threadfin/src/internal/imgcache"
 )
 
-// Einstellungen ändern (WebUI)
+// Change settings (WebUI)
 func updateServerSettings(request RequestStruct) (settings SettingsStruct, err error) {
 
 	var oldSettings = jsonToMap(mapToJSON(Settings))
@@ -24,8 +24,6 @@ func updateServerSettings(request RequestStruct) (settings SettingsStruct, err e
 	var cacheImages = false
 	var createXEPGFiles = false
 	var debug string
-
-	// -vvv [URL] --sout '#transcode{vcodec=mp4v, acodec=mpga} :standard{access=http, mux=ogg}'
 
 	for key, value := range newSettings {
 
@@ -40,7 +38,7 @@ func updateServerSettings(request RequestStruct) (settings SettingsStruct, err e
 				reloadData = true
 
 			case "update":
-				// Leerzeichen aus den Werten entfernen und Formatierung der Uhrzeit überprüfen (0000 - 2359)
+                                // Remove spaces from the values and check time format (0000 - 2359)
 				var newUpdateTimes = make([]string, 0)
 
 				for _, v := range value.([]interface{}) {
@@ -57,9 +55,9 @@ func updateServerSettings(request RequestStruct) (settings SettingsStruct, err e
 
 				}
 
-				if len(newUpdateTimes) == 0 {
-					//newUpdateTimes = append(newUpdateTimes, "0000")
-				}
+				/*if len(newUpdateTimes) == 0 {
+					newUpdateTimes = append(newUpdateTimes, "0000")
+				}*/
 
 				value = newUpdateTimes
 
@@ -102,7 +100,6 @@ func updateServerSettings(request RequestStruct) (settings SettingsStruct, err e
 					return
 				}
 
-			//case "ffmpeg.path", "vlc.path":
                         case "ffmpeg.path":
 				var path = value.(string)
 				if len(path) > 0 {
@@ -145,7 +142,7 @@ func updateServerSettings(request RequestStruct) (settings SettingsStruct, err e
 
 	}
 
-	// Einstellungen aktualisieren
+	// Update settings
 	err = json.Unmarshal([]byte(mapToJSON(oldSettings)), &Settings)
 	if err != nil {
 		return
@@ -161,31 +158,18 @@ func updateServerSettings(request RequestStruct) (settings SettingsStruct, err e
 
 	}
 
-	// Buffer Einstellungen überprüfen
+	// Check buffer settings
 	if len(Settings.FFmpegOptions) == 0 {
 		Settings.FFmpegOptions = System.FFmpeg.DefaultOptions
 	}
 
-	/*if len(Settings.VLCOptions) == 0 {
-		Settings.VLCOptions = System.VLC.DefaultOptions
-	}*/
-
 	switch Settings.Buffer {
 
 	case "ffmpeg":
-
 		if len(Settings.FFmpegPath) == 0 {
 			err = errors.New(getErrMsg(2020))
 			return
 		}
-
-	/*case "vlc":
-
-		if len(Settings.VLCPath) == 0 {
-			err = errors.New(getErrMsg(2021))
-			return
-		}*/
-
 	}
 
 	err = saveSettings(Settings)
@@ -257,7 +241,7 @@ func updateServerSettings(request RequestStruct) (settings SettingsStruct, err e
 	return
 }
 
-// Providerdaten speichern (WebUI)
+// Save provider data (WebUI)
 func saveFiles(request RequestStruct, fileType string) (err error) {
 
 	var filesMap = make(map[string]interface{})
@@ -290,14 +274,14 @@ func saveFiles(request RequestStruct, fileType string) (err error) {
 
 		if dataID == "-" {
 
-			// Neue Providerdatei
+			// New provider file
 			dataID = indicator + randomString(19)
 			data.(map[string]interface{})["new"] = true
 			filesMap[dataID] = data
 
 		} else {
 
-			// Bereits vorhandene Providerdatei
+			// Existing provider file
 			for key, value := range data.(map[string]interface{}) {
 
 				var oldData = filesMap[dataID].(map[string]interface{})
@@ -320,7 +304,7 @@ func saveFiles(request RequestStruct, fileType string) (err error) {
 
 		}
 
-		// Neue Providerdatei
+		// New provider file
 		if _, ok := data.(map[string]interface{})["new"]; ok {
 
 			reloadData = true
@@ -364,7 +348,7 @@ func saveFiles(request RequestStruct, fileType string) (err error) {
 	return
 }
 
-// Providerdaten manuell aktualisieren (WebUI)
+// Manually update provider data (WebUI)
 func updateFile(request RequestStruct, fileType string) (err error) {
 
 	var updateData = make(map[string]interface{})
@@ -394,7 +378,7 @@ func updateFile(request RequestStruct, fileType string) (err error) {
 	return
 }
 
-// Providerdaten löschen (WebUI)
+// Delete provider data (WebUI)
 func deleteLocalProviderFiles(dataID, fileType string) {
 
 	var removeData = make(map[string]interface{})
@@ -423,7 +407,7 @@ func deleteLocalProviderFiles(dataID, fileType string) {
 	return
 }
 
-// Filtereinstellungen speichern (WebUI)
+// Save filter settings (WebUI)
 func saveFilter(request RequestStruct) (settings SettingsStruct, err error) {
 	var filterMap = make(map[int64]interface{})
 	var newData = make(map[int64]interface{})
@@ -504,7 +488,7 @@ func saveFilter(request RequestStruct) (settings SettingsStruct, err error) {
 	return
 }
 
-// XEPG Mapping speichern
+// Save XEPG mapping
 func saveXEpgMapping(request RequestStruct) (err error) {
 
 	var tmp = Data.XEPG
@@ -537,7 +521,7 @@ func saveXEpgMapping(request RequestStruct) (err error) {
 
 	} else {
 
-		// Wenn während des erstellen der Datanbank das Mapping erneut gespeichert wird, wird die Datenbank erst später erneut aktualisiert.
+                // If the mapping is saved again during database creation, the database will be updated again later.
 		go func() {
 
 			if System.BackgroundProcess == true {
@@ -569,7 +553,7 @@ func saveXEpgMapping(request RequestStruct) (err error) {
 	return
 }
 
-// Benutzerdaten speichern (WebUI)
+// Save user data (WebUI)
 func saveUserData(request RequestStruct) (err error) {
 
 	var userData = request.UserData
@@ -625,7 +609,7 @@ func saveUserData(request RequestStruct) (err error) {
 	return
 }
 
-// Neuen Benutzer anlegen (WebUI)
+// Create new user (WebUI)
 func saveNewUser(request RequestStruct) (err error) {
 
 	var data = request.UserData
@@ -746,7 +730,7 @@ func saveWizard(request RequestStruct) (nextStep int, err error) {
 	return
 }
 
-// Filterregeln erstellen
+// Create filter rules
 func createFilterRules() (err error) {
 
 	Data.Filter = nil
@@ -794,7 +778,7 @@ func createFilterRules() (err error) {
 	return
 }
 
-// Datenbank für das DVR System erstellen
+// Create database for the DVR system
 func buildDatabaseDVR() (err error) {
 
 	System.ScanInProgress = 1
@@ -846,14 +830,14 @@ func buildDatabaseDVR() (err error) {
 				playlistFile = append(playlistFile[:n], playlistFile[n+1:]...)
 			}
 
-			// Streams analysieren
+                        // Analyze streams
 			for _, stream := range channels {
 				var s = stream.(map[string]string)
 				s["_file.m3u.path"] = i
 				s["_file.m3u.name"] = playlistName
 				s["_file.m3u.id"] = id
 
-				// Kompatibilität berechnen
+                                // Calculate compatibility
 				for _, key := range keys {
 
 					switch key {
@@ -891,7 +875,7 @@ func buildDatabaseDVR() (err error) {
 
 				Data.Streams.All = append(Data.Streams.All, stream)
 
-				// Neuer Filter ab Version 1.3.0
+                                // New filter from version 1.3.0
 				var preview string
 				var status bool
 
@@ -992,7 +976,7 @@ func buildDatabaseDVR() (err error) {
 	return
 }
 
-// Speicherort aller lokalen Providerdateien laden, immer für eine Dateityp (M3U, XMLTV usw.)
+// Load storage location of all local provider files, always for one file type (M3U, XMLTV, etc.)
 func getLocalProviderFiles(fileType string) (localFiles []string) {
 
 	var fileExtension string
@@ -1021,7 +1005,7 @@ func getLocalProviderFiles(fileType string) (localFiles []string) {
 	return
 }
 
-// Providerparameter anhand von dem Key ausgeben
+// Output provider parameters based on the key
 func getProviderParameter(id, fileType, key string) (s string) {
 
 	var dataMap = make(map[string]interface{})
@@ -1052,7 +1036,7 @@ func getProviderParameter(id, fileType, key string) (s string) {
 	return
 }
 
-// Provider Statistiken Kompatibilität aktualisieren
+// Update provider statistics compatibility
 func setProviderCompatibility(id, fileType string, compatibility map[string]int) {
 
 	var dataMap = make(map[string]interface{})

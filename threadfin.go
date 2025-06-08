@@ -17,37 +17,17 @@ import (
 	"threadfin/src"
 )
 
-// GitHubStruct : GitHub Account. Über diesen Account werden die Updates veröffentlicht
-/*type GitHubStruct struct {
-          Branch  string
-          Repo    string
-          Update  bool
-          User    string
-          TagName string
-}*/
-
-// GitHub : GitHub Account
-// If you want to fork this project, enter your Github account here. This prevents a newer version of Threadfin from updating your version.
-// var GitHub = GitHubStruct{Branch: "Main", User: "jordandalley", Repo: "Threadfin", Update: false}
-
-/*
-	Branch: GitHub Branch
-	User: 	GitHub Username
-	Repo: 	GitHub Repository
-	Update: Automatic updates from the GitHub repository [true|false]
-*/
-
-// Name : Programmname
+// Name : Program Name
 const Name = "Threadfin"
 
-// Version : Version, die Build Nummer wird in der main func geparst.
-const Version = "1.2.32"
+// Version : Version
+const Version = "2.0.0"
 
-// DBVersion : Datanbank Version
+// DBVersion : Database Version
 const DBVersion = "0.5.0"
 
 // APIVersion : API Version
-const APIVersion = "1.2.32"
+const APIVersion = "2.0.0"
 
 var homeDirectory = fmt.Sprintf("%s%s.%s%s", src.GetUserHomeDirectory(), string(os.PathSeparator), strings.ToLower(Name), string(os.PathSeparator))
 var samplePath = fmt.Sprintf("%spath%sto%sthreadfin%s", string(os.PathSeparator), string(os.PathSeparator), string(os.PathSeparator), string(os.PathSeparator))
@@ -62,26 +42,22 @@ var debug = flag.Int("debug", 0, ": Debug level          [0 - 3] (default: 0)")
 var info = flag.Bool("info", false, ": Show system info")
 var h = flag.Bool("h", false, ": Show help")
 
-// Aktiviert den Entwicklungsmodus. Für den Webserver werden dann die lokalen Dateien verwendet.
 var dev = flag.Bool("dev", false, ": Activates the developer mode, the source code must be available. The local files for the web interface are used.")
 var bindIpAddress = flag.String("bind", "", ": Bind IP address")
 
 func main() {
 
-	// Build-Nummer von der Versionsnummer trennen
 	var build = strings.Split(Version, ".")
 
 	var system = &src.System
 	system.APIVersion = APIVersion
-	//system.Branch = strings.ToTitle(GitHub.Branch)
         system.Branch = "Main"
 	system.Build = build[len(build)-1:][0]
 	system.DBVersion = DBVersion
-	//system.GitHub = GitHub
 	system.Name = Name
 	system.Version = strings.Join(build[0:len(build)-1], ".")
 
-	// Panic !!!
+	// Error handling
 	defer func() {
 
 		if r := recover(); r != nil {
@@ -127,7 +103,7 @@ func main() {
 
 	system.Dev = *dev
 
-	// Systeminformationen anzeigen
+        // Display system information
 	if *info {
 
 		system.Flag.Info = true
@@ -165,12 +141,12 @@ func main() {
 		return
 	}
 
-	// Speicherort für die Konfigurationsdateien
+        // Storage location for the configuration files
 	if len(*configFolder) > 0 {
 		system.Folder.Config = *configFolder
 	}
 
-	// Backup wiederherstellen
+        // Restore backup
 	if len(*restore) > 0 {
 
 		system.Flag.Restore = *restore
@@ -194,11 +170,6 @@ func main() {
 		src.ShowError(err, 0)
 		os.Exit(0)
 	}
-
-	/*err = src.BinaryUpdate()
-	if err != nil {
-		src.ShowError(err, 0)
-	}*/
 
 	err = src.StartSystem(false)
 	if err != nil {
@@ -234,7 +205,6 @@ func getPIDs(command string) ([]string, error) {
 
 // killProcess kills a process by its PID
 func killProcess(pid string) error {
-	//cmd := exec.Command("kill", "-9", pid)
         cmd := exec.Command("kill", pid)
 	return cmd.Run()
 }

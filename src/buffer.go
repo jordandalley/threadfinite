@@ -1,10 +1,5 @@
 package src
 
-/*
-  Render tuner-limit image as video [ffmpeg]
-  -loop 1 -i stream-limit.jpg -c:v libx264 -t 1 -pix_fmt yuv420p -vf scale=1920:1080  stream-limit.ts
-*/
-
 import (
 	"bufio"
 	"bytes"
@@ -12,16 +7,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
-	"path"
 	"sort"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
-
 	"github.com/avfs/avfs/vfs/memfs"
 )
 
@@ -32,7 +23,7 @@ type BackupStream struct {
 
 func getActiveClientCount() (count int) {
 	count = 0
-	cleanUpStaleClients() // Ensure stale clients are removed first
+	cleanUpStaleClients()
 
 	BufferInformation.Range(func(key, value interface{}) bool {
 		playlist, ok := value.(Playlist)
@@ -149,7 +140,6 @@ func bufferingStream(playlistID string, streamingURL string, backupStream1 *Back
 	var timeOut = 0
 	var newStream = true
 
-	//w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Connection", "close")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
@@ -190,13 +180,6 @@ func bufferingStream(playlistID string, streamingURL string, backupStream1 *Back
 		}
                 // Hard set to ffmpeg
                 playListBuffer = "ffmpeg"
-		/*if playListMap, ok := playListInterface.(map[string]interface{}); ok {
-			if buffer, ok := playListMap["buffer"].(string); ok {
-				playListBuffer = buffer
-			} else {
-				playListBuffer = "-"
-			}
-		}*/
 		systemMutex.Unlock()
 
 		playlist.Buffer = playListBuffer
@@ -362,7 +345,6 @@ func bufferingStream(playlistID string, streamingURL string, backupStream1 *Back
 
 		switch playlist.Buffer {
 
-		//case "ffmpeg", "vlc":
                 case "ffmpeg":
 			go thirdPartyBuffer(streamID, playlistID, false, 0)
 
@@ -458,7 +440,6 @@ func bufferingStream(playlistID string, streamingURL string, backupStream1 *Back
 					}
 
 					var tmpFiles = getBufTmpFiles(&stream)
-					//fmt.Println("Buffer Loop:", stream.Connection)
 
 					for _, f := range tmpFiles {
 
@@ -500,20 +481,11 @@ func bufferingStream(playlistID string, streamingURL string, backupStream1 *Back
 
 										contentType := http.DetectContentType(buffer)
 										_ = contentType
-										//w.Header().Set("Content-type", "video/mpeg")
 										w.Header().Set("Content-type", contentType)
 										w.Header().Set("Content-Length", "0")
 										w.Header().Set("Connection", "close")
 
 									}
-
-									/*
-									   // HDHR Header
-									   w.Header().Set("Cache-Control", "no-cache")
-									   w.Header().Set("Pragma", "no-cache")
-									   w.Header().Set("transferMode.dlna.org", "Streaming")
-									*/
-
 									_, err := w.Write(buffer)
 
 									if err != nil {
@@ -722,7 +694,7 @@ func clientConnection(stream ThisStream) (status bool) {
 	return
 }
 
-func parseM3U8(stream *ThisStream) (err error) {
+/*func parseM3U8(stream *ThisStream) (err error) {
 
 	var debug string
 	var noNewSegment = false
@@ -978,7 +950,7 @@ func parseM3U8(stream *ThisStream) (err error) {
 	}
 
 	return
-}
+}*/
 
 func switchBandwidth(stream *ThisStream) (err error) {
 
@@ -1077,20 +1049,10 @@ func thirdPartyBuffer(streamID int, playlistID string, useBackup bool, backupNum
 
 		case "ffmpeg":
 
-			/*if Settings.FFmpegForceHttp {
-				url = strings.Replace(url, "https://", "http://", -1)
-				showInfo("Forcing URL to HTTP for FFMPEG: " + url)
-			}*/
-
-			//path = Settings.FFmpegPath
                         //hard coding path to python yt-dlp wrapper script for ffmpeg
                         path = "/home/threadfin/bin/wrapper"
 			options = Settings.FFmpegOptions
 
-		/*case "vlc":
-			path = Settings.VLCPath
-			options = Settings.VLCOptions
-                */
 		default:
 			return
 		}
@@ -1156,8 +1118,6 @@ func thirdPartyBuffer(streamID int, playlistID string, useBackup bool, backupNum
 			return
 		}
 
-		//args = strings.Replace(args, "[USER-AGENT]", Settings.UserAgent, -1)
-
 		// Set User-Agent
 		var args []string
 
@@ -1188,27 +1148,6 @@ func thirdPartyBuffer(streamID int, playlistID string, useBackup bool, backupNum
 				}
 
 				args = append(args, a)
-
-			/*case "VLC":
-				if a == "[URL]" {
-					a = strings.Replace(a, "[URL]", url, -1)
-					args = append(args, a)
-
-					if len(Settings.UserAgent) != 0 {
-						args = append(args, fmt.Sprintf(":http-user-agent=%s", Settings.UserAgent))
-					}
-
-					if len(playlist.HttpUserReferer) != 0 {
-						args = append(args, fmt.Sprintf(":http-referrer=%s", playlist.HttpUserReferer))
-					}
-
-					if playlist.HttpProxyIP != "" && playlist.HttpProxyPort != "" {
-						args = append(args, fmt.Sprintf(":http-proxy=%s:%s", playlist.HttpProxyIP, playlist.HttpProxyPort))
-					}
-
-				} else {
-					args = append(args, a)
-				}*/
 
 			}
 
@@ -1428,21 +1367,10 @@ func getTuner(id, playlistType string) (tuner int) {
 	}
         // Hard set to ffmpeg
         playListBuffer = "ffmpeg"
-	/*if playListMap, ok := playListInterface.(map[string]interface{}); ok {
-		if buffer, ok := playListMap["buffer"].(string); ok {
-			playListBuffer = buffer
-		} else {
-			playListBuffer = "-"
-		}
-	}*/
 	systemMutex.Unlock()
 
 	switch playListBuffer {
 
-	/*case "-":
-		tuner = Settings.Tuner
-
-	case "threadfin", "ffmpeg", "vlc":*/
         case "ffmpeg":
 		i, err := strconv.Atoi(getProviderParameter(id, playlistType, "tuner"))
 		if err == nil {
@@ -1461,7 +1389,7 @@ func initBufferVFS() {
 	bufferVFS = memfs.New()
 }
 
-func debugRequest(req *http.Request) {
+/*func debugRequest(req *http.Request) {
 
 	var debugLevel = 3
 
@@ -1499,9 +1427,9 @@ func debugRequest(req *http.Request) {
 	showDebug(debug, debugLevel)
 
 	return
-}
+}*/
 
-func debugResponse(resp *http.Response) {
+/*func debugResponse(resp *http.Response) {
 
 	var debugLevel = 3
 
@@ -1544,9 +1472,9 @@ func debugResponse(resp *http.Response) {
 	showDebug(debug, debugLevel)
 
 	return
-}
+}*/
 
-func terminateProcessGracefully(cmd *exec.Cmd) {
+/*func terminateProcessGracefully(cmd *exec.Cmd) {
 	if cmd.Process != nil {
 		// Send a SIGTERM to the process
 		if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
@@ -1559,3 +1487,4 @@ func terminateProcessGracefully(cmd *exec.Cmd) {
 		cmd.Wait()
 	}
 }
+*/

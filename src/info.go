@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// ShowSystemInfo : Systeminformationen anzeigen
+// ShowSystemInfo : Display system information
 func ShowSystemInfo() {
 
 	fmt.Print("Creating the information takes a moment...")

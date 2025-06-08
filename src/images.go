@@ -10,7 +10,7 @@ func uploadLogo(input, filename string) (logoURL string, err error) {
 
   b64data := input[strings.IndexByte(input, ',')+1:]
 
-  // BAse64 in bytes umwandeln un speichern
+  // Convert Base64 to bytes and save
   sDec, err := b64.StdEncoding.DecodeString(b64data)
   if err != nil {
     return

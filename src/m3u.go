@@ -15,7 +15,7 @@ import (
 	m3u "threadfin/src/internal/m3u-parser"
 )
 
-// Playlisten parsen
+// Parse Playlist
 func parsePlaylist(filename, fileType string) (channels []interface{}, err error) {
 
 	content, err := readByteFromFile(filename)
@@ -36,7 +36,7 @@ func parsePlaylist(filename, fileType string) (channels []interface{}, err error
 	return
 }
 
-// Streams filtern
+// Filter streams
 func filterThisStream(s interface{}) (status bool, liveEvent bool) {
 
 	status = false
@@ -68,7 +68,6 @@ func filterThisStream(s interface{}) (status bool, liveEvent bool) {
 			name = v
 		}
 
-		// Unerwünschte Streams !{DEU}
 		r := regexp.MustCompile(regexpNO)
 		val := r.FindStringSubmatch(filter.Rule)
 
@@ -80,7 +79,6 @@ func filterThisStream(s interface{}) (status bool, liveEvent bool) {
 
 		}
 
-		// Muss zusätzlich erfüllt sein {DEU}
 		r = regexp.MustCompile(regexpYES)
 		val = r.FindStringSubmatch(filter.Rule)
 
@@ -146,7 +144,6 @@ func filterThisStream(s interface{}) (status bool, liveEvent bool) {
 	return false, liveEvent
 }
 
-// Bedingungen für den Filter
 func checkConditions(streamValues, conditions, coType string) (status bool) {
 
 	switch coType {
@@ -185,7 +182,6 @@ func checkConditions(streamValues, conditions, coType string) (status bool) {
 	return
 }
 
-// Threadfin M3U Datei erstellen
 func buildM3U(groups []string) (m3u string, err error) {
 
 	var imgc = Data.Cache.Images
@@ -221,7 +217,6 @@ func buildM3U(groups []string) (m3u string, err error) {
 	Done:
 	}
 
-	// M3U Inhalt erstellen
 	sort.Float64s(channelNumbers)
 
 	var xmltvURL = fmt.Sprintf("%s://%s/xmltv/threadfin.xml", System.ServerProtocol.XML, System.Domain)

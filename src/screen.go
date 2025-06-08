@@ -132,7 +132,7 @@ func showWarning(errCode int) {
 	return
 }
 
-// ShowError : Zeigt die Fehlermeldungen in der Konsole
+// ShowError : Displays error messages in the console
 func ShowError(err error, errCode int) {
 
 	var mutex = sync.RWMutex{}
@@ -224,7 +224,7 @@ func logCleanUp() {
 	return
 }
 
-// Fehlercodes
+// Error codes
 func getErrMsg(errCode int) (errMsg string) {
 
 	switch errCode {
@@ -261,7 +261,7 @@ func getErrMsg(errCode int) (errMsg string) {
 	case 1020:
 		errMsg = fmt.Sprintf("Data could not be saved, invalid keyword")
 
-	// Datenbank Update
+	// Database Update
 	case 1030:
 		errMsg = fmt.Sprintf("Invalid settings file (%s)", System.File.Settings)
 	case 1031:
@@ -274,7 +274,7 @@ func getErrMsg(errCode int) (errMsg string) {
 	case 1060:
 		errMsg = fmt.Sprintf("Invalid characters found in the tvg parameters, streams with invalid parameters were skipped.")
 
-	// Dateisystem
+	// File System
 	case 1070:
 		errMsg = fmt.Sprintf("Folder could not be created.")
 	case 1071:
@@ -298,7 +298,7 @@ func getErrMsg(errCode int) (errMsg string) {
 	case 1200:
 		errMsg = fmt.Sprintf("Could not create file")
 
-	// Stream URL Fehler
+	// Stream URL Error
 	case 1201:
 		errMsg = fmt.Sprintf("Plex stream error")
 	case 1202:
@@ -339,9 +339,6 @@ func getErrMsg(errCode int) (errMsg string) {
 	case 2106:
 		errMsg = fmt.Sprintf("This function is only available with XEPG as EPG source")
 
-	/*case 2110:
-		errMsg = fmt.Sprintf("Don't run this as Root!")*/
-
 	case 2300:
 		errMsg = fmt.Sprintf("No channel logo found in the XMLTV or M3U file.")
 	case 2301:
@@ -349,7 +346,7 @@ func getErrMsg(errCode int) (errMsg string) {
 	case 2302:
 		errMsg = fmt.Sprintf("Channel ID in the XMLTV file has changed. Channel has been deactivated.")
 
-	// Benutzerauthentifizierung
+	// User Authentication
 	case 3000:
 		errMsg = fmt.Sprintf("Database for user authentication could not be initialized.")
 	case 3001:
@@ -388,16 +385,6 @@ func getErrMsg(errCode int) (errMsg string) {
 	// API
 	case 5000:
 		errMsg = fmt.Sprintf("Invalid API command")
-
-	// Update Server
-	/*case 6001:
-		errMsg = fmt.Sprintf("Ivalid key")
-	case 6002:
-		errMsg = fmt.Sprintf("Update failed")
-	case 6003:
-		errMsg = fmt.Sprintf("Update server not available")
-	case 6004:
-		errMsg = fmt.Sprintf("Threadfin update available")*/
 
 	default:
 		errMsg = fmt.Sprintf("Unknown error / warning (%d)", errCode)

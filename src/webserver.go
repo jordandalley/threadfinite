@@ -2,6 +2,7 @@ package src
 
 import (
 	"encoding/json"
+        "encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -12,13 +13,12 @@ import (
 	"path"
 	"strconv"
 	"strings"
-
 	"threadfin/src/internal/authentication"
 
 	"github.com/gorilla/websocket"
 )
 
-// StartWebserver : Startet den Webserver
+// StartWebserver : Start the Webserver
 func StartWebserver() (err error) {
 	systemMutex.Lock()
 	port := Settings.Port
@@ -179,30 +179,9 @@ func Stream(w http.ResponseWriter, r *http.Request) {
 		playListInterface = Settings.Files.HDHR[streamInfo.PlaylistID]
 	}
         playListBuffer = "ffmpeg"
-	/*if playListMap, ok := playListInterface.(map[string]interface{}); ok {
-		if bufferValue, exists := playListMap["buffer"]; exists && bufferValue != nil {
-			if buffer, ok := bufferValue.(string); ok {
-				playListBuffer = buffer
-			}
-		}
-	}*/
 	systemMutex.Unlock()
 
 	switch playListBuffer {
-	/*case "-":
-		showInfo(fmt.Sprintf("Buffer:false [%s]", playListBuffer))
-	case "threadfin":
-		if strings.Index(streamInfo.URL, "rtsp://") != -1 || strings.Index(streamInfo.URL, "rtp://") != -1 {
-			err = errors.New("RTSP and RTP streams are not supported")
-			ShowError(err, 2004)
-			showInfo("Streaming URL:" + streamInfo.URL)
-			http.Redirect(w, r, streamInfo.URL, 302)
-			return
-		}
-		showInfo(fmt.Sprintf("Buffer:true [%s]", playListBuffer))
-	default:
-		showInfo(fmt.Sprintf("Buffer:true [%s]", playListBuffer))
-        */
         case "ffmpeg":
                 showInfo(fmt.Sprintf("Buffer:true [%s]", playListBuffer))
         }
@@ -211,22 +190,13 @@ func Stream(w http.ResponseWriter, r *http.Request) {
 	showInfo(fmt.Sprintf("Client User-Agent:%s", r.Header.Get("User-Agent")))
 
 	switch playListBuffer {
-	/*case "-":
-		showInfo("Streaming URL:" + streamInfo.URL)
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		http.Redirect(w, r, streamInfo.URL, 302)
-		showInfo("Streaming Info:URL was passed to the client.")
-		showInfo("Streaming Info:Threadfin is no longer involved, the client connects directly to the streaming server.")
-	default:
-		bufferingStream(streamInfo.PlaylistID, streamInfo.URL, streamInfo.BackupChannel1, streamInfo.BackupChannel2, streamInfo.BackupChannel3, streamInfo.Name, w, r)
-        */
         case "ffmpeg":
 		bufferingStream(streamInfo.PlaylistID, streamInfo.URL, streamInfo.BackupChannel1, streamInfo.BackupChannel2, streamInfo.BackupChannel3, streamInfo.Name, w, r)
         }
 	return
 }
 
-// Auto : HDHR routing (wird derzeit nicht benutzt)
+// Auto: HDHR routing (currently not used)
 func Auto(w http.ResponseWriter, r *http.Request) {
 	var channelID = strings.Replace(r.RequestURI, "/auto/v", "", 1)
 	fmt.Println(channelID)
@@ -249,7 +219,7 @@ func Threadfin(w http.ResponseWriter, r *http.Request) {
 	}
 	systemMutex.Unlock()
 
-	// XMLTV Datei
+	// XMLTV files
 	if strings.Contains(path, "xmltv/") {
 
 		requestType = "xml"
@@ -273,7 +243,7 @@ func Threadfin(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	// M3U Datei
+	// M3U files
 	if strings.Contains(path, "m3u/") {
 
 		requestType = "m3u"
@@ -304,11 +274,6 @@ func Threadfin(w http.ResponseWriter, r *http.Request) {
 		log.Println("M3U file does not exist, building new one")
 
 		systemMutex.Lock()
-		if !System.Dev {
-			// false: Dateiname wird im Header gesetzt
-			// true: M3U wird direkt im Browser angezeigt
-			w.Header().Set("Content-Disposition", "attachment; filename="+getFilenameFromPath(path))
-		}
 		systemMutex.Unlock()
 
 		if len(groupTitle) > 0 {
@@ -356,7 +321,7 @@ func Images(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// DataImages : Image Pfad für Logos / Bilder die hochgeladen wurden /data_images/
+// DataImages : Image path for logos / images that have been uploaded /data_images/
 func DataImages(w http.ResponseWriter, r *http.Request) {
 
 	var path = strings.TrimPrefix(r.URL.Path, "/")
@@ -474,13 +439,9 @@ func WS(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 
-		case "loadFiles":
-			// response.Response = Settings.Files
-
 		// Data write commands
 		case "saveSettings":
 			var authenticationUpdate = Settings.AuthenticationWEB
-			// var previousStoreBufferInRAM = Settings.StoreBufferInRAM
 			response.Settings, err = updateServerSettings(request)
 			if err == nil {
 				response.OpenMenu = strconv.Itoa(indexOfString("settings", System.WEB.Menu))
@@ -489,9 +450,7 @@ func WS(w http.ResponseWriter, r *http.Request) {
 					response.Reload = true
 				}
 
-				// if Settings.StoreBufferInRAM != previousStoreBufferInRAM {
 				initBufferVFS()
-				// }
 			}
 
 		case "saveFilesM3U":
@@ -682,21 +641,13 @@ func Web(w http.ResponseWriter, r *http.Request) {
 	systemMutex.Unlock()
 
 	systemMutex.Lock()
-	if System.Dev == true {
-		lang, err = loadJSONFileToMap(fmt.Sprintf("html/lang/%s.json", Settings.Language))
-		systemMutex.Unlock()
-		if err != nil {
-			ShowError(err, 000)
-		}
-	} else {
-		systemMutex.Unlock()
-		var languageFile = "html/lang/en.json"
+        systemMutex.Unlock()
+        var languageFile = "html/lang/en.json"
 
-		if value, ok := webUI[languageFile].(string); ok {
-			content = GetHTMLString(value)
-			lang = jsonToMap(content)
-		}
-	}
+        if value, ok := webUI[languageFile].(string); ok {
+                content = GetHTMLString(value)
+                lang = jsonToMap(content)
+        }
 
 	err = json.Unmarshal([]byte(mapToJSON(lang)), &language)
 	if err != nil {
@@ -733,7 +684,7 @@ func Web(w http.ResponseWriter, r *http.Request) {
 					confirm = r.FormValue("confirm")
 				}
 
-				// Erster Benutzer wird angelegt (Passwortbestätigung ist vorhanden)
+				// First user is created (password confirmation is present)
 				if len(confirm) > 0 {
 
 					var token, err = createFirstUserForAuthentication(username, password)
@@ -741,14 +692,14 @@ func Web(w http.ResponseWriter, r *http.Request) {
 						httpStatusError(w, r, 429)
 						return
 					}
-					// Redirect, damit die Daten aus dem Browser gelöscht werden.
+					// Redirect so that the data is cleared from the browser.
 					w = authentication.SetCookieToken(w, token)
 					http.Redirect(w, r, "/web", 301)
 					return
 
 				}
 
-				// Benutzername und Passwort vorhanden, wird jetzt überprüft
+			        // Username and password are present, now being verified
 				if len(username) > 0 && len(password) > 0 {
 
 					var token, err = authentication.UserAuthentication(username, password)
@@ -759,11 +710,11 @@ func Web(w http.ResponseWriter, r *http.Request) {
 					}
 
 					w = authentication.SetCookieToken(w, token)
-					http.Redirect(w, r, "/web", 301) // Redirect, damit die Daten aus dem Browser gelöscht werden.
+					http.Redirect(w, r, "/web", 301) // Redirect so that the data is cleared from the browser.
 
 				} else {
 					w = authentication.SetCookieToken(w, "-")
-					http.Redirect(w, r, "/web", 301) // Redirect, damit die Daten aus dem Browser gelöscht werden.
+					http.Redirect(w, r, "/web", 301) // Redirect so that the data is cleared from the browser.
 				}
 
 				return
@@ -833,10 +784,6 @@ func Web(w http.ResponseWriter, r *http.Request) {
 	contentType = getContentType(requestFile)
 
 	systemMutex.Lock()
-	if System.Dev == true {
-		// Lokale Webserver Dateien werden geladen, nur für die Entwicklung
-		content, _ = readStringFromFile(requestFile)
-	}
 	systemMutex.Unlock()
 
 	w.Header().Add("Content-Type", contentType)
@@ -851,53 +798,6 @@ func Web(w http.ResponseWriter, r *http.Request) {
 
 // API : API request /api/
 func API(w http.ResponseWriter, r *http.Request) {
-
-	/*
-			API Bedingungen (ohne Authentifizierung):
-			- API muss in den Einstellungen aktiviert sein
-
-			Beispiel API Request mit curl
-			Status:
-			curl -X POST -H "Content-Type: application/json" -d '{"cmd":"status"}' http://localhost:34400/api/
-
-			- - - - -
-
-			API Bedingungen (mit Authentifizierung):
-			- API muss in den Einstellungen aktiviert sein
-			- API muss bei den Authentifizierungseinstellungen aktiviert sein
-			- Benutzer muss die Berechtigung API haben
-
-			Nach jeder API Anfrage wird ein Token generiert, dieser ist einmal in 60 Minuten gültig.
-			In jeder Antwort ist ein neuer Token enthalten
-
-			Beispiel API Request mit curl
-			Login:
-			curl -X POST -H "Content-Type: application/json" -d '{"cmd":"login","username":"plex","password":"123"}' http://localhost:34400/api/
-
-			Antwort:
-			{
-		  	"status": true,
-		  	"token": "U0T-NTSaigh-RlbkqERsHvUpgvaaY2dyRGuwIIvv"
-			}
-
-			Status mit Verwendung eines Tokens:
-			curl -X POST -H "Content-Type: application/json" -d '{"cmd":"status","token":"U0T-NTSaigh-RlbkqERsHvUpgvaaY2dyRGuwIIvv"}' http://localhost:4400/api/
-
-			Antwort:
-			{
-			  "epg.source": "XEPG",
-			  "status": true,
-			  "streams.active": 7,
-			  "streams.all": 63,
-			  "streams.xepg": 2,
-			  "token": "mXiG1NE1MrTXDtyh7PxRHK5z8iPI_LzxsQmY-LFn",
-			  "url.dvr": "localhost:34400",
-			  "url.m3u": "http://localhost:34400/m3u/threadfin.m3u",
-			  "url.xepg": "http://localhost:34400/xmltv/threadfin.xml",
-			  "version.api": "1.1.0",
-			  "version.threadfin": "1.3.0"
-			}
-	*/
 
 	if Settings.HttpThreadfinDomain != "" {
 		setGlobalDomain(getBaseUrl(Settings.HttpThreadfinDomain, Settings.Port))
@@ -986,7 +886,7 @@ func API(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch request.Cmd {
-	case "login": // Muss nichts übergeben werden
+	case "login": // Nothing needs to be passed
 
 	case "status":
 
@@ -1046,7 +946,7 @@ func API(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// Download : Datei Download
+// Download : File download
 func Download(w http.ResponseWriter, r *http.Request) {
 
 	var path = r.URL.Path
@@ -1093,7 +993,7 @@ func setDefaultResponseData(response ResponseStruct, data bool) (defaults Respon
 		}
 	}
 
-	// Folgende Daten immer an den Client übergeben
+	// The following data is always passed to the client
 	defaults.ClientInfo.ARCH = System.ARCH
 	defaults.ClientInfo.EpgSource = Settings.EpgSource
 	defaults.ClientInfo.DVR = System.Addresses.DVR
@@ -1260,4 +1160,10 @@ func getContentType(filename string) (contentType string) {
 		return contentType
 	}
 	return "text/plain"
+}
+
+// GetHTMLString : base64 -> string
+func GetHTMLString(base string) string {
+	content, _ := base64.StdEncoding.DecodeString(base)
+	return string(content)
 }

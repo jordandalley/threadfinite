@@ -31,7 +31,7 @@ func checkFolder(path string) (err error) {
 	_, err = os.Stat(filepath.Dir(path))
 
 	if os.IsNotExist(err) {
-		// Ordner existiert nicht, wird jetzt erstellt
+		// Folder does not exist, will be created now
 
 		err = os.MkdirAll(getPlatformPath(path), 0755)
 		if err == nil {
@@ -94,7 +94,7 @@ func fsIsNotExistErr(err error) bool {
 	return false
 }
 
-// Prüft ob die Datei im Dateisystem existiert
+// Checks if the file exists in the file system
 func checkFile(filename string) (err error) {
 
 	var file = getPlatformFile(filename)
@@ -118,7 +118,7 @@ func checkFile(filename string) (err error) {
 	return
 }
 
-// GetUserHomeDirectory : Benutzer Homer Verzeichnis
+// GetUserHomeDirectory: User home directory
 func GetUserHomeDirectory() (userHomeDirectory string) {
 
 	usr, err := user.Current()
@@ -141,7 +141,7 @@ func GetUserHomeDirectory() (userHomeDirectory string) {
 	return
 }
 
-// Prüft Dateiberechtigung
+// Checks file permissions
 func checkFilePermission(dir string) (err error) {
 
 	var filename = dir + "permission.test"
@@ -154,12 +154,12 @@ func checkFilePermission(dir string) (err error) {
 	return
 }
 
-// Ordnerpfad für das laufende OS generieren
+// Generate folder path for the current OS
 func getPlatformPath(path string) string {
 	return filepath.Dir(path) + string(os.PathSeparator)
 }
 
-// Dateipfad für das laufende OS generieren
+// Generate file path for the current OS
 func getPlatformFile(filename string) (osFilePath string) {
 
 	path, file := filepath.Split(filename)
@@ -169,18 +169,12 @@ func getPlatformFile(filename string) (osFilePath string) {
 	return
 }
 
-// Dateinamen aus dem Dateipfad ausgeben
+// Extract filename from the file path
 func getFilenameFromPath(path string) (file string) {
 	return filepath.Base(path)
 }
 
-// Nicht mehr verwendete Systemdaten löschen
-func removeOldSystemData() {
-	// Temporären Ordner löschen
-	os.RemoveAll(System.Folder.Temp)
-}
-
-// Sucht eine Datei im OS
+// Searches for a file in the OS
 func searchFileInOS(file string) (path string) {
 
 	switch runtime.GOOS {
@@ -241,14 +235,6 @@ func mapToJSON(tmpMap interface{}) string {
 func jsonToMap(content string) map[string]interface{} {
 
 	var tmpMap = make(map[string]interface{})
-	json.Unmarshal([]byte(content), &tmpMap)
-
-	return (tmpMap)
-}
-
-func jsonToMapInt64(content string) map[int64]interface{} {
-
-	var tmpMap = make(map[int64]interface{})
 	json.Unmarshal([]byte(content), &tmpMap)
 
 	return (tmpMap)
@@ -335,7 +321,7 @@ func readStringFromFile(file string) (str string, err error) {
 	return
 }
 
-// Netzwerk
+// Network
 func resolveHostIP() error {
 	interfaces, err := net.Interfaces()
 	if err != nil {
@@ -384,7 +370,7 @@ func resolveHostIP() error {
 	return nil
 }
 
-// Sonstiges
+// Miscellaneous
 func randomString(n int) string {
 
 	const alphanum = "AB1CD2EF3GH4IJ5KL6MN7OP8QR9ST0UVWXYZ"
@@ -426,17 +412,6 @@ func indexOfString(element string, data []string) int {
 }
 
 func indexOfFloat64(element float64, data []float64) int {
-
-	for k, v := range data {
-		if element == v {
-			return (k)
-		}
-	}
-
-	return -1
-}
-
-func indexOfInt(element int, data []int) int {
 
 	for k, v := range data {
 		if element == v {

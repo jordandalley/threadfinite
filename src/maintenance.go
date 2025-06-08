@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// InitMaintenance : Wartungsprozess initialisieren
+// InitMaintenance : Initialize maintenance process
 func InitMaintenance() (err error) {
 
 	rand.Seed(time.Now().Unix())
@@ -23,7 +23,7 @@ func maintenance() {
 
 		var t = time.Now()
 
-		// Aktualisierung der Playlist und XMLTV Dateien
+                // Update playlist and XMLTV files
 		systemMutex.Lock()
 		if System.ScanInProgress == 0 {
 			systemMutex.Unlock()
@@ -33,13 +33,13 @@ func maintenance() {
 
 					showInfo("Update:" + schedule)
 
-					// Backup erstellen
+					// Create backup
 					err := ThreadfinAutoBackup()
 					if err != nil {
 						ShowError(err, 000)
 					}
 
-					// Playlist und XMLTV Dateien aktualisieren
+					// Update playlist and XMLTV files
 					getProviderData("m3u", "")
 					getProviderData("hdhr", "")
 
@@ -47,7 +47,7 @@ func maintenance() {
 						getProviderData("xmltv", "")
 					}
 
-					// Datenbank für DVR erstellen
+					// Create database for DVR
 					err = buildDatabaseDVR()
 					if err != nil {
 						ShowError(err, 000)
@@ -61,7 +61,7 @@ func maintenance() {
 						systemMutex.Unlock()
 					}
 
-					// XEPG Dateien erstellen
+					// Create XEPG files
 					systemMutex.Lock()
 					Data.Cache.XMLTV = make(map[string]XMLTV)
 					systemMutex.Unlock()
@@ -71,15 +71,6 @@ func maintenance() {
 				}
 
 			}
-
-			// Update Threadfin (Binary)
-			/*systemMutex.Lock()
-			if System.TimeForAutoUpdate == t.Format("1504") {
-				systemMutex.Unlock()
-				//BinaryUpdate()
-			} else {
-				systemMutex.Unlock()
-			}*/
 
 		} else {
 			systemMutex.Unlock()

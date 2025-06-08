@@ -17,10 +17,10 @@ RUN go mod download
 COPY threadfin.go ./
 COPY src src
 
-# Rebuild the html from source 1/2 (Uncomment below to recompile html sources into webUI.go)
-#COPY html html
-#COPY html-build-standalone.go ./
-#RUN go mod vendor && go run html-build-standalone.go
+# Rebuild the html files into src/webUI.go file prior to recompile
+COPY html html
+COPY build-html.go ./
+RUN go mod vendor && go run build-html.go
 
 # Build the application with optimizations
 RUN CGO_ENABLED=0 go build -mod=mod -ldflags="-s -w" -trimpath -o threadfin threadfin.go
@@ -33,10 +33,10 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-COPY src/wrapper/requirements.txt .
+COPY src/internal/wrapper/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY src/wrapper/wrapper.py .
+COPY src/internal/wrapper/wrapper.py .
 
 RUN pyinstaller --name wrapper --onefile wrapper.py
 
@@ -79,9 +79,6 @@ WORKDIR $THREADFIN_HOME
 ARG TARGETARCH
 ARG OS_VERSION=debian
 ARG OS_CODENAME=bookworm
-
-# Rebuild the html from source 2/2 (Uncomment below to COPY the recompiled html sources of webUI.go to the /home/threadfin/dev directory 
-# COPY --from=builder-go /app/src/webUI.go $THREADFIN_HOME/dev/
 
 # Copy threadfin binary out of builder-go container into standard
 COPY --from=builder-go /app/threadfin $THREADFIN_BIN/

@@ -11,25 +11,7 @@ import (
 	"time"
 )
 
-// Entwicklerinfos anzeigen
-func showDevInfo() {
-
-	if System.Dev == true {
-
-		fmt.Print("\033[31m")
-		fmt.Println("* * * * * D E V   M O D E * * * * *")
-		fmt.Println("Version: ", System.Version)
-		fmt.Println("Build:   ", System.Build)
-		fmt.Println("* * * * * * * * * * * * * * * * * *")
-		fmt.Print("\033[0m")
-		fmt.Println()
-
-	}
-
-	return
-}
-
-// Alle Systemordner erstellen
+// Create all system folders
 func createSystemFolders() (err error) {
 
 	e := reflect.ValueOf(&System.Folder).Elem()
@@ -49,7 +31,7 @@ func createSystemFolders() (err error) {
 	return
 }
 
-// Alle Systemdateien erstellen
+// Create all system files
 func createSystemFiles() (err error) {
 	var debug string
 	for _, file := range SystemFiles {
@@ -106,7 +88,7 @@ func updateUrlsJson() {
 	buildXEPG(false)
 }
 
-// Einstellungen laden und default Werte setzen (Threadfin)
+// Load settings and set default values (Threadfin)
 func loadSettings() (settings SettingsStruct, err error) {
 
 	settingsMap, err := loadJSONFileToMap(System.File.Settings)
@@ -114,7 +96,7 @@ func loadSettings() (settings SettingsStruct, err error) {
 		return SettingsStruct{}, err
 	}
 
-	// Deafult Werte setzten
+	// Set default values
 	var defaults = make(map[string]interface{})
 	var dataMap = make(map[string]interface{})
 
@@ -136,7 +118,6 @@ func loadSettings() (settings SettingsStruct, err error) {
 	defaults["cache.images"] = false
 	defaults["epgSource"] = "XEPG"
 	defaults["ffmpeg.options"] = System.FFmpeg.DefaultOptions
-	//defaults["vlc.options"] = System.VLC.DefaultOptions
 	defaults["files"] = dataMap
 	defaults["files.update"] = true
 	defaults["filter"] = make(map[string]interface{})
@@ -163,13 +144,12 @@ func loadSettings() (settings SettingsStruct, err error) {
 	defaults["uuid"] = createUUID()
 	defaults["udpxy"] = ""
 	defaults["version"] = System.DBVersion
-	//defaults["ThreadfinAutoUpdate"] = true
 	if isRunningInContainer() {
 		defaults["ThreadfinAutoUpdate"] = false
 	}
 	defaults["temp.path"] = System.Folder.Temp
 
-	// Default Werte setzen
+	// Set default values
 	for key, value := range defaults {
 		if _, ok := settingsMap[key]; !ok {
 			settingsMap[key] = value
@@ -180,7 +160,7 @@ func loadSettings() (settings SettingsStruct, err error) {
 		return SettingsStruct{}, err
 	}
 
-	// Einstellungen von den Flags übernehmen
+	// Apply settings from the flags
 	if len(System.Flag.Port) > 0 {
 		settings.Port = System.Flag.Port
 	}
@@ -194,10 +174,6 @@ func loadSettings() (settings SettingsStruct, err error) {
 		settings.FFmpegPath = "/home/threadfin/bin/wrapper"
 	}
 
-	/*if len(settings.VLCPath) == 0 {
-		settings.VLCPath = searchFileInOS("cvlc")
-	}*/
-
 	// Initialze virutal filesystem for the Buffer
 	initBufferVFS()
 
@@ -208,19 +184,15 @@ func loadSettings() (settings SettingsStruct, err error) {
 		return SettingsStruct{}, err
 	}
 
-	// Warung wenn FFmpeg nicht gefunden wurde
+	// Warning if FFmpeg was not found
 	if len(Settings.FFmpegPath) == 0 && Settings.Buffer == "ffmpeg" {
 		showWarning(2020)
 	}
 
-	/*if len(Settings.VLCPath) == 0 && Settings.Buffer == "vlc" {
-		showWarning(2021)
-	}*/
-
 	return settings, nil
 }
 
-// Einstellungen speichern (Threadfin)
+// Save settings (Threadfin)
 func saveSettings(settings SettingsStruct) (err error) {
 
 	if settings.BackupKeep == 0 {
@@ -244,16 +216,12 @@ func saveSettings(settings SettingsStruct) (err error) {
 
 	Settings = settings
 
-	if System.Dev == true {
-		Settings.UUID = "2019-01-DEV-Threadfin!"
-	}
-
 	setDeviceID()
 
 	return
 }
 
-// Zugriff über die Domain ermöglichen
+// Enable access via the domain
 func setGlobalDomain(domain string) {
 
 	System.Domain = domain
@@ -288,13 +256,13 @@ func setGlobalDomain(domain string) {
 	return
 }
 
-// UUID generieren
+// UUID generation
 func createUUID() (uuid string) {
 	uuid = time.Now().Format("2006-01") + "-" + randomString(4) + "-" + randomString(6)
 	return
 }
 
-// Eindeutige Geräte ID für Plex generieren
+// Generate unique device ID for Plex
 func setDeviceID() {
 
 	var id = Settings.UUID
@@ -310,7 +278,7 @@ func setDeviceID() {
 	return
 }
 
-// Provider Streaming-URL zu Threadfin Streaming-URL konvertieren
+// Convert provider streaming URL to Threadfin streaming URL
 func createStreamingURL(streamingType, playlistID, channelNumber, channelName, url string, backup_channel_1 *BackupStream, backup_channel_2 *BackupStream, backup_channel_3 *BackupStream) (streamingURL string, err error) {
 
 	var streamInfo StreamInfo

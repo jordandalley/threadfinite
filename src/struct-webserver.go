@@ -1,11 +1,11 @@
 package src
 
-// RequestStruct : Anfragen über die Websocket Schnittstelle
+// RequestStruct: Requests over the WebSocket interface
 type RequestStruct struct {
-	// Befehle an Threadfin
+	// Commands to Threadfin
 	Cmd string `json:"cmd,required"`
 
-	// Benutzer
+	// User
 	DeleteUser bool                   `json:"deleteUser,omitempty"`
 	UserData   map[string]interface{} `json:"userData,omitempty"`
 
@@ -15,7 +15,7 @@ type RequestStruct struct {
 	// Restore
 	Base64 string `json:"base64,omitempty"`
 
-	// Neue Werte für die Einstellungen (settings.json)
+        // New values for the settings (settings.json)
 	Settings struct {
 		API                      *bool     `json:"api,omitempty"`
 		SSDP                     *bool     `json:"ssdp,omitempty"`
@@ -33,9 +33,6 @@ type RequestStruct struct {
 		EpgSource                *string   `json:"epgSource,omitempty"`
 		FFmpegOptions            *string   `json:"ffmpeg.options,omitempty"`
 		FFmpegPath               *string   `json:"ffmpeg.path,omitempty"`
-		//FfmpegForceHttp          *bool     `json:"ffmpeg.forceHttp,omitempty"`
-		//VLCOptions               *string   `json:"vlc.options,omitempty"`
-		//VLCPath                  *string   `json:"vlc.path,omitempty"`
 		FilesUpdate              *bool     `json:"files.update,omitempty"`
 		TempPath                 *string   `json:"temp.path,omitempty"`
 		Tuner                    *int      `json:"tuner,omitempty"`
@@ -67,7 +64,7 @@ type RequestStruct struct {
 	// Filter
 	Filter map[int64]interface{} `json:"filter,omitempty"`
 
-	// Dateien (M3U, HDHR, XMLTV)
+	// Files (M3U, HDHR, XMLTV)
 	Files struct {
 		HDHR  map[string]interface{} `json:"hdhr,omitempty"`
 		M3U   map[string]interface{} `json:"m3u,omitempty"`
@@ -86,7 +83,7 @@ type RequestStruct struct {
 	ProbeURL string `json:"probeURL,omitempty"`
 }
 
-// ResponseStruct : Antworten an den Client (WEB)
+// ResponseStruct: Responses to the client (WEB)
 type ResponseStruct struct {
 	ClientInfo struct {
 		ARCH           string `json:"arch"`
@@ -149,7 +146,7 @@ type ProbeInfoStruct struct {
 	AudioChannel string `json:"audioChannel,omitempty"`
 }
 
-// APIRequestStruct : Anfrage über die API Schnittstelle
+// APIRequestStruct: Request via the API interface
 type APIRequestStruct struct {
 	Cmd      string `json:"cmd"`
 	Password string `json:"password"`
@@ -157,7 +154,7 @@ type APIRequestStruct struct {
 	Username string `json:"username"`
 }
 
-// APIResponseStruct : Antwort an den Client (API)
+// APIResponseStruct: Response to the client (API)
 type APIResponseStruct struct {
 	EpgSource        string `json:"epg.source,omitempty"`
 	Error            string `json:"err,omitempty"`
@@ -173,7 +170,7 @@ type APIResponseStruct struct {
 	VersionThreadfin string `json:"version.threadfin,omitempty"`
 }
 
-// WebScreenLogStruct : Logs werden im RAM gespeichert und für das Webinterface bereitgestellt
+// WebScreenLogStruct: Logs are stored in RAM and provided for the web interface
 type WebScreenLogStruct struct {
 	Errors   int      `json:"errors,required"`
 	Log      []string `json:"log,required"`

@@ -2,7 +2,7 @@ package src
 
 import "time"
 
-// Playlist : Enthält allen Playlistinformationen, die der Buffer benötigr
+// Playlist: Contains all playlist information required by the buffer
 type Playlist struct {
 	Folder          string
 	PlaylistID      string
@@ -23,7 +23,7 @@ type ThisClient struct {
 	Connection int
 }
 
-// ThisStream : Enthält Informationen zu dem abzuspielenden Stream einer Playlist
+// ThisStream: Contains information about the stream to be played from a playlist
 type ThisStream struct {
 	ChannelName      string
 	Error            string
@@ -40,7 +40,7 @@ type ThisStream struct {
 
 	Segment []Segment
 
-	// Serverinformationen
+	// Server Information
 	Location           string
 	URLFile            string
 	URLHost            string
@@ -49,7 +49,7 @@ type ThisStream struct {
 	URLScheme          string
 	URLStreamingServer string
 
-	// Wird nur für HLS / M3U8 verwendet
+	// Used only for HLS / M3U8
 	Body             string
 	Difference       float64
 	Duration         float64
@@ -70,13 +70,13 @@ type ThisStream struct {
 
 	DynamicStream map[int]DynamicStream
 
-	// Lokale Temp Datein
+        // Local temp files
 	OldSegments []string
 
 	ClientID string
 }
 
-// Segment : URL Segmente (HLS / M3U8)
+// Segment : URL Segments (HLS / M3U8)
 type Segment struct {
 	Duration     float64
 	Info         bool
@@ -95,7 +95,7 @@ type Segment struct {
 	}
 }
 
-// DynamicStream : Streaminformationen bei dynamischer Bandbreite
+// DynamicStream: Stream information for dynamic bandwidth
 type DynamicStream struct {
 	AverageBandwidth int
 	Bandwidth        int
@@ -104,13 +104,13 @@ type DynamicStream struct {
 	URL              string
 }
 
-// ClientConnection : Client Verbindungen
+// ClientConnection: Client connections
 type ClientConnection struct {
 	Connection int
 	Error      error
 }
 
-// BandwidthCalculation : Bandbreitenberechnung für den Stream
+// BandwidthCalculation: Bandwidth calculation for the stream
 type BandwidthCalculation struct {
 	NetworkBandwidth int
 	Size             int

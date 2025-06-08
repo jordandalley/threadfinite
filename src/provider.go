@@ -11,7 +11,7 @@ import (
 	m3u "threadfin/src/internal/m3u-parser"
 )
 
-// fileType: Welcher Dateityp soll aktualisiert werden (m3u, hdhr, xml) | fileID: Update einer bestimmten Datei (Provider ID)
+// fileType: Which file type should be updated (m3u, hdhr, xml) | fileID: Update a specific file (provider ID)
 func getProviderData(fileType, fileID string) (err error) {
 
 	var fileExtension, serverFileName string
@@ -30,7 +30,7 @@ func getProviderData(fileType, fileID string) (err error) {
 			dataMap[id] = data
 		}
 
-		// Default keys für die Providerdaten
+                // Default keys for the provider data
 		var keys = []string{"name", "description", "type", "file." + System.AppName, "file.source", "tuner", "http_proxy.ip", "http_proxy.port", "last.update", "compatibility", "counter.error", "counter.download", "provider.availability"}
 
 		for _, key := range keys {
@@ -91,14 +91,14 @@ func getProviderData(fileType, fileID string) (err error) {
 			data["id.provider"] = id
 		}
 
-		// Datei extrahieren
+		// Extract file
 		body, err = extractGZIP(body, fileSource)
 		if err != nil {
 			ShowError(err, 000)
 			return
 		}
 
-		// Daten überprüfen
+		// Verify data
 		showInfo("Check File:" + fileSource)
 
 		switch fileType {
@@ -195,7 +195,7 @@ func getProviderData(fileType, fileID string) (err error) {
 			delete(data, "new")
 		}
 
-		// Wenn eine ID vorhanden ist und nicht mit der aus der Datanbank übereinstimmt, wird die Aktualisierung übersprungen (goto)
+                // If an ID is present and does not match the one in the database, the update is skipped (goto)
 		if len(fileID) > 0 && newProvider == false {
 			if dataID != fileID {
 				goto Done
@@ -206,7 +206,7 @@ func getProviderData(fileType, fileID string) (err error) {
 
 		case "hdhr":
 
-			// Laden vom HDHomeRun Tuner
+                        // Loading from HDHomeRun tuner
 			showInfo("Tuner:" + fileSource)
 			var tunerURL = "http://" + fileSource + "/lineup.json"
 			serverFileName, body, err = downloadFileFromServer(tunerURL, httpProxyUrl)
@@ -215,13 +215,13 @@ func getProviderData(fileType, fileID string) (err error) {
 
 			if strings.Contains(fileSource, "http://") || strings.Contains(fileSource, "https://") {
 
-				// Laden vom Remote Server
+				// Loading from Remote Server
 				showInfo("Download:" + fileSource)
 				serverFileName, body, err = downloadFileFromServer(fileSource, httpProxyUrl)
 
 			} else {
 
-				// Laden einer lokalen Datei
+                                // Loading a local file
 				showInfo("Open:" + fileSource)
 
 				err = checkFile(fileSource)
@@ -250,7 +250,7 @@ func getProviderData(fileType, fileID string) (err error) {
 
 			if newProvider == false {
 
-				// Prüfen ob ältere Datei vorhanden ist
+                                // Check if older file exists
 				var file = System.Folder.Data + dataID + fileExtension
 
 				err = checkFile(file)
@@ -263,7 +263,7 @@ func getProviderData(fileType, fileID string) (err error) {
 					err = downloadErr
 				}
 
-				// Fehler Counter um 1 erhöhen
+                                // Increment error counter by 1
 				var data = make(map[string]interface{})
 				if value, ok := dataMap[dataID].(map[string]interface{}); ok {
 
@@ -279,7 +279,7 @@ func getProviderData(fileType, fileID string) (err error) {
 
 		}
 
-		// Berechnen der Fehlerquote
+		// Calculate error rate
 		if newProvider == false {
 
 			if value, ok := dataMap[dataID].(map[string]interface{}); ok {
