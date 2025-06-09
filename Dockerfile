@@ -64,7 +64,6 @@ ENV THREADFIN_BIN=/home/threadfin/bin \
     THREADFIN_UID=31337 \
     THREADFIN_GID=31337 \
     THREADFIN_USER=threadfin \
-    THREADFIN_BRANCH=main \
     THREADFIN_DEBUG=0 \
     THREADFIN_PORT=34400 \
     THREADFIN_LOG=/var/log/threadfin.log \
