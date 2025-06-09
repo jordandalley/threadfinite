@@ -6,6 +6,7 @@ An optimisation of the official [Threadfin](https://github.com/Threadfin/Threadf
 - Simplified configuration by removing multiple buffering options
   - This fork uses a wrapper to pass stream URL's to yt-dlp, so it detects the best stream before buffering it to FFmpeg.
   - Enables support for using livestream services such as Youtube as channel sources
+- A complete refactor and code review of buffer.go
 - Includes jellyfin-ffmpeg7
 - Removed auto update options
 - Changed container type from Ubuntu to Debian Bookworm (Slim) reducing container size
