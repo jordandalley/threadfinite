@@ -1,8 +1,3 @@
-// Copyright 2019 marmei. All rights reserved.
-// Use of this source code is governed by a MIT license that can be found in the
-// LICENSE file.
-// GitHub: https://github.com/jordandalley/Threadfin
-
 package main
 
 import (
@@ -36,11 +31,6 @@ func getPlatformFile(filename string) (osFilePath string) {
         return
 }
 
-
-// HTMLInit : Dateipfade festlegen
-// mapName = Name der zu erstellenden map
-// htmlFolder: Ordner der HTML Dateien
-// packageName: Name des package
 func HTMLInit(name, pkg, folder, file string) {
 
 	htmlFolder = folder
@@ -50,7 +40,7 @@ func HTMLInit(name, pkg, folder, file string) {
 
 }
 
-// BuildGoFile : Erstellt das GO Dokument
+// BuildGoFile
 func BuildGoFile() error {
 
 	var err = checkHTMLFile(htmlFolder)

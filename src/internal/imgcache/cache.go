@@ -29,7 +29,7 @@ type imageFunc struct {
 	Remove  func()
 }
 
-// New : New cahce
+// New : New cache
 func New(path, cacheURL string, caching bool) (c *Cache, err error) {
 
 	c = &Cache{}

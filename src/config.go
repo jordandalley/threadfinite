@@ -6,10 +6,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-
 	"github.com/avfs/avfs"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 // System : Contains all system information
@@ -70,12 +67,6 @@ func Init() (err error) {
         // Needed so the first entries are displayed in the log (webUI).
 	Settings.LogEntriesRAM = 500
 
-	// Update Prozess
-	//System.Update.Git = "https://github.com/Threadfin/Threadfin/blob"
-	//System.Update.Git = fmt.Sprintf("https://github.com/%s/%s", System.GitHub.User, System.GitHub.Repo)
-	//System.Update.Github = fmt.Sprintf("https://api.github.com/repos/%s/%s", System.GitHub.User, System.GitHub.Repo)
-	//System.Update.Name = "Threadfin"
-
         // Define folder paths
 	var tempFolder = os.TempDir() + string(os.PathSeparator) + System.AppName + string(os.PathSeparator)
 	tempFolder = getPlatformPath(strings.Replace(tempFolder, "//", "/", -1))
@@ -87,16 +78,12 @@ func Init() (err error) {
 	}
 
 	System.Folder.Config = getPlatformPath(System.Folder.Config)
-
 	System.Folder.Backup = System.Folder.Config + "backup" + string(os.PathSeparator)
 	System.Folder.Data = System.Folder.Config + "data" + string(os.PathSeparator)
 	System.Folder.Cache = System.Folder.Config + "cache" + string(os.PathSeparator)
 	System.Folder.ImagesCache = System.Folder.Cache + "images" + string(os.PathSeparator)
 	System.Folder.ImagesUpload = System.Folder.Data + "images" + string(os.PathSeparator)
 	System.Folder.Temp = tempFolder
-
-	// Dev Info
-	// showDevInfo()
 
         // Create system folders
 	err = createSystemFolders()
@@ -176,20 +163,6 @@ func Init() (err error) {
 		return
 	}
 
-        // Set branch
-	System.Branch = cases.Title(language.English).String(Settings.Branch)
-
-	/*if System.Dev {
-		System.Branch = cases.Title(language.English).String("development")
-	}*/
-
-	if len(System.Branch) == 0 {
-		System.Branch = cases.Title(language.English).String("main")
-	}
-
-	showInfo(fmt.Sprintf("GitHub:https://github.com/%s", System.GitHub.User))
-	showInfo(fmt.Sprintf("Git Branch:%s [%s]", System.Branch, System.GitHub.User))
-
 	// Set base URI
 	if Settings.HttpThreadfinDomain != "" {
 		setGlobalDomain(getBaseUrl(Settings.HttpThreadfinDomain, Settings.Port))
@@ -198,16 +171,6 @@ func Init() (err error) {
 	}
 
 	System.URLBase = fmt.Sprintf("%s://%s:%s", System.ServerProtocol.WEB, System.IPAddress, Settings.Port)
-
-	// If System.Dev is true then use local files and generate go file
-	/*if System.Dev == true {
-		HTMLInit("webUI", "src", "html"+string(os.PathSeparator), "src"+string(os.PathSeparator)+"webUI.go")
-		err = BuildGoFile()
-		if err != nil {
-			return
-		}
-
-	}*/
 
         // Start DLNA server
 	if Settings.SSDP {
@@ -232,14 +195,14 @@ func StartSystem(updateProviderFiles bool) (err error) {
 		return
 	}
 
-	// Systeminformationen in der Konsole ausgeben
+	// System information for the console output
 	showInfo(fmt.Sprintf("UUID:%s", Settings.UUID))
-	showInfo(fmt.Sprintf("Tuner (Plex / Emby):%d", Settings.Tuner))
+	showInfo(fmt.Sprintf("Tuner (Jellyfin / Plex / Emby):%d", Settings.Tuner))
 	showInfo(fmt.Sprintf("EPG Source:%s", Settings.EpgSource))
 	showInfo(fmt.Sprintf("Plex Channel Limit:%d", System.PlexChannelLimit))
 	showInfo(fmt.Sprintf("Unfiltered Chan. Limit:%d", System.UnfilteredChannelLimit))
 
-	// Providerdaten aktualisieren
+        // Update provider data
 	if len(Settings.Files.M3U) > 0 && Settings.FilesUpdate == true || updateProviderFiles == true {
 
 		err = ThreadfinAutoBackup()

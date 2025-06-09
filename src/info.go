@@ -21,10 +21,7 @@ func ShowSystemInfo() {
 	println()
 
 	fmt.Println(fmt.Sprintf("Version:             %s %s.%s", System.Name, System.Version, System.Build))
-	fmt.Println(fmt.Sprintf("Branch:              %s", System.Branch))
-	fmt.Println(fmt.Sprintf("GitHub:              %s/%s | Git update = %t", System.GitHub.User, System.GitHub.Repo, System.GitHub.Update))
 	fmt.Println(fmt.Sprintf("Folder (config):     %s", System.Folder.Config))
-
 	fmt.Println(fmt.Sprintf("Streams:             %d / %d", len(Data.Streams.Active), len(Data.Streams.All)))
 	fmt.Println(fmt.Sprintf("Filter:              %d", len(Data.Filter)))
 	fmt.Println(fmt.Sprintf("XEPG Chanels:        %d", int(Data.XEPG.XEPGCount)))
@@ -68,9 +65,8 @@ func ShowSystemInfo() {
 	println("---")
 
 	fmt.Println("Settings [General]")
-	fmt.Println(fmt.Sprintf("Threadfin Update:        %t", Settings.ThreadfinAutoUpdate))
 	fmt.Println(fmt.Sprintf("UUID:                %s", Settings.UUID))
-	fmt.Println(fmt.Sprintf("Tuner (Plex / Emby): %d", Settings.Tuner))
+	fmt.Println(fmt.Sprintf("Tuner (Jellyfin / Plex / Emby): %d", Settings.Tuner))
 	fmt.Println(fmt.Sprintf("EPG Source:          %s", Settings.EpgSource))
 
 	println("---")

@@ -2,6 +2,12 @@ package src
 
 import "time"
 
+// Backup stream structs
+type BackupStream struct {
+        PlaylistID string
+        URL        string
+}
+
 // Playlist: Contains all playlist information required by the buffer
 type Playlist struct {
 	Folder          string
@@ -76,7 +82,14 @@ type ThisStream struct {
 	ClientID string
 }
 
-// Segment : URL Segments (HLS / M3U8)
+type StreamInf struct {
+	AveragedBandwidth int
+	Bandwidth         int
+	Framerate         float64
+	Resolution        string
+	SegmentURL        string
+}
+
 type Segment struct {
 	Duration     float64
 	Info         bool
@@ -85,14 +98,7 @@ type Segment struct {
 	URL          string
 	Version      int
 	Wait         float64
-
-	StreamInf struct {
-		AverageBandwidth int
-		Bandwidth        int
-		Framerate        float64
-		Resolution       string
-		SegmentURL       string
-	}
+	StreamInf    StreamInf
 }
 
 // DynamicStream: Stream information for dynamic bandwidth

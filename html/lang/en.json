@@ -438,10 +438,6 @@
       "title": "Replace PPV channels title/desc",
       "description": "Use this if your provider maps the PPV event name to the channel name"
     },
-    "ThreadfinAutoUpdate": {
-      "title": "Automatic update of Threadfin",
-      "description": "If a new version of Threadfin is available, it will be automatically installed. The updates are downloaded from GitHub."
-    },
     "streamBuffering": {
       "title": "Stream Buffer",
       "description": "Functions of the buffer:<br>- The stream is passed from FFmpeg or VLC to Plex, Emby, Jellyfin or M3U Player<br>- Small jerking of the streams can be compensated<br>- HLS / M3U8 support<br>- RTP / RTPS support<br>- Re-streaming<br>- Separate tuner limit for each playlist",

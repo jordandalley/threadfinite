@@ -84,7 +84,7 @@ type SystemStruct struct {
 		XML string
 	}
 
-	GitHub struct {
+	/*GitHub struct {
 		Branch  string
 		Repo    string
 		Update  bool
@@ -96,7 +96,7 @@ type SystemStruct struct {
 		Git    string
 		Name   string
 		Github string
-	}
+	}*/
 
 	URLBase string
 	UDPxy   string
